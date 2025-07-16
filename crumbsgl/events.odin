@@ -23,16 +23,21 @@ Mouse_Buttons: map[sdl.MouseButtonFlag]ButtonState
 @(private = "file")
 Mouse_Position: [2]i32 = {}
 @(private = "file")
+Mouse_Displacement: [2]i32 = {}
+@(private = "file")
 Event_Quit: bool = false
 
 handle_events :: proc() {
-	// Pre event handle
+	// Pre event handle and resets
 	for key, value in Pressed_Keys {
 		if value == .JustPressed {
 			Pressed_Keys[key] = .NotPressed
 		}
 	}
+	Mouse_Displacement[0] = 0
+	Mouse_Displacement[1] = 0
 
+	// Event Handling
 	event: sdl.Event
 	for sdl.PollEvent(&event) {
 		if event.type == .QUIT {
@@ -45,10 +50,10 @@ handle_events :: proc() {
 			}
 		} else if event.type == .KEY_UP {
 			Pressed_Keys[event.key.key] = .JustReleased
+		} else if event.type == .MOUSE_MOTION {
+			Mouse_Displacement[0] = i32(event.motion.xrel)
+			Mouse_Displacement[1] = i32(event.motion.yrel)
 		}
-		// else if event.type == .MOUSE_BUTTON_DOWN {
-		// 	Mouse_Buttons[event.button.button] = true
-		// }
 	}
 
 	// Mouse input handled here to get position at same time
@@ -93,11 +98,18 @@ is_button_just_pressed :: proc(button: sdl.MouseButtonFlag) -> bool {
 	return Mouse_Buttons[button] == .JustPressed
 }
 
+is_button_pressed :: proc(button: sdl.MouseButtonFlag) -> bool {
+	return Mouse_Buttons[button] == .Pressed
+}
+
 get_mouse_position :: proc() -> (x, y: i32) {
 	return Mouse_Position[0], Mouse_Position[1]
+}
+
+get_mouse_displacement :: proc() -> (x, y: i32) {
+	return Mouse_Displacement[0], Mouse_Displacement[1]
 }
 
 has_quit :: proc() -> bool {
 	return Event_Quit
 }
-

@@ -37,8 +37,9 @@ Renderable :: struct {
 // }
 
 Window :: struct {
-	window:     ^sdl.Window,
-	gl_context: ^sdl.GLContextState,
+	window:        ^sdl.Window,
+	gl_context:    ^sdl.GLContextState,
+	width, height: i32,
 }
 
 Program :: struct {
@@ -75,7 +76,7 @@ windowInit :: proc(width, height, GLmajor, GLminor: i32) -> (win: Window, ok: bo
 	gl.GenVertexArrays(1, &emptyVao)
 	gl.BindVertexArray(emptyVao)
 
-	win = {window, gl_context}
+	win = {window, gl_context, width, height}
 	gContext.window = win
 	return win, true
 }
@@ -207,8 +208,6 @@ createQuadFS :: proc() -> (mesh: Mesh) {
 		{{1, -1, 0}, {1, 0}},
 	}
 	mesh = createMesh(screen_vert)
-	// rend.mesh = mesh
-	// rend.mode = gl.TRIANGLE_STRIP
 	return mesh
 }
 
@@ -251,4 +250,3 @@ compute_run :: proc(compute: u32, group_x: u32 = 1, group_y: u32 = 1, group_z: u
 	gl.DispatchCompute(group_x, group_y, 1)
 	gl.MemoryBarrier(gl.ALL_BARRIER_BITS)
 }
-
