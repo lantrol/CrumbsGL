@@ -11,13 +11,21 @@ FONT_SIZE :: 64.
 
 FontData :: struct {
 	atlas:        []u8,
+	atlasTex:     Texture,
 	packedChars:  []ttf.packedchar,
 	alignedQuads: []ttf.aligned_quad,
 	firstChar:    i32,
 	charRange:    i32,
 }
 
-font_atlas_from_file :: proc(file: string, firstChar: i32, charRange: i32) -> (FontData, bool) {
+font_atlas_from_file :: proc(
+	file: string,
+	firstChar: i32,
+	charRange: i32,
+) -> (
+	fontData: FontData,
+	font_ok: bool,
+) {
 	fontFile, ok := os.read_entire_file_from_filename(file)
 	if !ok {
 		fmt.println("Error opening font file")
@@ -35,7 +43,7 @@ font_atlas_from_file :: proc(file: string, firstChar: i32, charRange: i32) -> (F
 		&fontCtx,
 		raw_data(fontFile),
 		0,
-		FONT_SIZE,
+		f32(FONT_SIZE),
 		i32(' '),
 		charRange,
 		raw_data(packedChars),
@@ -56,66 +64,110 @@ font_atlas_from_file :: proc(file: string, firstChar: i32, charRange: i32) -> (F
 		)
 	}
 
-	return FontData{fontAtlas, packedChars, alignedQuads, firstChar, charRange}, true
+	fontData.atlasTex = createTexture2D(ATLAS_SIZE, ATLAS_SIZE)
+	writeTexture2D(fontData.atlasTex, fontAtlas, 1, ATLAS_SIZE, ATLAS_SIZE)
+	fontData.atlas = fontAtlas
+	fontData.packedChars = packedChars
+	fontData.alignedQuads = alignedQuads
+	fontData.firstChar = firstChar
+	fontData.charRange = charRange
+
+	return fontData, true
 }
 
 font_font_to_png :: proc(fontData: FontData, $fileName: cstring) {
 	img.write_png(fileName, ATLAS_SIZE, ATLAS_SIZE, 1, raw_data(fontData.atlas), ATLAS_SIZE)
 }
 
-font_laod_default_shader :: proc() -> (u32, bool) {
-	return gl.load_shaders_source(defaultVS, defaultFS)
+font_get_char_quad :: proc(font: FontData, char: rune, position: [2]f32) -> ([6]Vertex, bool) {
+	if i32(char) < font.firstChar || i32(char) > font.firstChar + font.charRange {
+		return {}, false
+	}
+	charIndex: i32 = i32(char) - font.firstChar
+	pixelScaleX: f32 = 1. / f32(font.atlasTex.width)
+	pixelScaleY: f32 = 1. / f32(font.atlasTex.height)
+
+	_packed := font.packedChars[charIndex]
+	_aligned := font.alignedQuads[charIndex]
+	quadSize := [2]f32{f32(_packed.x1) - f32(_packed.x0), f32(_packed.y1) - f32(_packed.y0)}
+
+	quad: [6]Vertex = {
+		{
+			{
+				position[0] + f32(_packed.xoff) * pixelScaleX,
+				position[1] + (f32(quadSize[1]) + f32(_packed.yoff)) * pixelScaleY,
+				0.,
+			},
+			{f32(_aligned.s0), f32(_aligned.t0)},
+		},
+		{
+			{
+				position[0] + (f32(quadSize[0]) + _packed.xoff) * pixelScaleX,
+				position[1] + (f32(quadSize[1]) + _packed.yoff) * pixelScaleY,
+				0.,
+			},
+			{f32(_aligned.s1), f32(_aligned.t0)},
+		},
+		{
+			{
+				position[0] + f32(_packed.xoff) * pixelScaleX,
+				position[1] + f32(_packed.yoff) * pixelScaleY,
+				0.,
+			},
+			{f32(_aligned.s0), f32(_aligned.t1)},
+		},
+		{
+			{
+				position[0] + (f32(quadSize[0]) + _packed.xoff) * pixelScaleX,
+				position[1] + (f32(quadSize[1]) + _packed.yoff) * pixelScaleY,
+				0.,
+			},
+			{f32(_aligned.s1), f32(_aligned.t0)},
+		},
+		{
+			{
+				position[0] + f32(_packed.xoff) * pixelScaleX,
+				position[1] + f32(_packed.yoff) * pixelScaleY,
+				0.,
+			},
+			{f32(_aligned.s0), f32(_aligned.t1)},
+		},
+		{
+			{
+				position[0] + (f32(quadSize[0]) + _packed.xoff) * pixelScaleX,
+				position[1] + f32(_packed.yoff) * pixelScaleY,
+				0.,
+			},
+			{f32(_aligned.s1), f32(_aligned.t1)},
+		},
+	}
+
+	return quad, true
 }
 
+font_draw_text :: proc(font: FontData, text: string, position: [2]f32) {
+	origin := position
+	offset: f32 = 0
 
-@(private = "file")
-defaultVS: string = `
-#version 450 core
-
-struct VertexData {
-	float position[3];
-	float uv[2];
-};
-
-layout(binding = 0, std430) readonly buffer ssbo1 {
-	VertexData data[];
-};
-
-out vec2 iUvs;
-
-vec3 getPosition(int index) {
-    return vec3(
-        data[index].position[0],
-        data[index].position[1],
-        data[index].position[2]
-    );
+	drawPoint({origin[0], origin[1], 0.}, color = {1., 0., 1.})
+	for char in text {
+		charQuad, char_ok := font_get_char_quad(font, char, origin + {offset, 0})
+		if !char_ok {
+			return
+		}
+		charMesh := createMesh(charQuad[:])
+		defer deleteMesh(&charMesh)
+		renderMesh(charMesh, sh_get_default_font_shader(), font.atlasTex)
+		offset += font_get_char_advance(font, char)
+	}
 }
 
-vec2 getUV(int index) {
-    return vec2(
-        data[index].uv[0],
-        data[index].uv[1]
-    );
+font_get_char_advance :: proc(font: FontData, char: rune) -> f32 {
+	if i32(char) < font.firstChar || i32(char) > font.firstChar + font.charRange {
+		return 0
+	}
+	charIndex: i32 = i32(char) - font.firstChar
+	pixelScaleX: f32 = 1. / f32(font.atlasTex.width)
+
+	return f32(font.packedChars[charIndex].xadvance) * pixelScaleX
 }
-
-void main() {
-    iUvs = getUV(gl_VertexID);
-    gl_Position = vec4(getPosition(gl_VertexID), 1.0);
-}
-`
-
-
-@(private = "file")
-defaultFS: string = `
-#version 450 core
-
-uniform sampler2D atlas;
-
-in vec2 iUvs;
-out vec4 frag_color;
-
-void main() {
-	frag_color = texture(atlas, iUvs);
-}
-
-`

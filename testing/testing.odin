@@ -59,4 +59,3 @@ main :: proc() {
 	fmt.println(packedChars[2])
 	fmt.println(alignedQuads[2])
 }
-

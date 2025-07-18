@@ -21,19 +21,25 @@ main :: proc() {
 	)
 	defer crgl.windowDelete(&window)
 	gl.Enable(gl.BLEND)
+	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
 	font, ok := crgl.font_atlas_from_file("./crumbsgl/fonts/Comic Sans MS.ttf", i32(' '), 94)
 	//crgl.font_font_to_png(font, "test.png")
-	fmt.println(font.packedChars[1])
-	fmt.println(font.alignedQuads[1])
+	fmt.println(font.packedChars[i32('p') - font.firstChar])
+	fmt.println(font.alignedQuads[i32('p') - font.firstChar])
 
 	fontTex: crgl.Texture = crgl.createTexture2D(crgl.ATLAS_SIZE, crgl.ATLAS_SIZE)
 	crgl.writeTexture2D(fontTex, font.atlas, 1, crgl.ATLAS_SIZE, crgl.ATLAS_SIZE)
 
 	screen: crgl.Mesh = crgl.createQuadFS()
-	shader, sh_ok := crgl.font_laod_default_shader()
+
+	textOrigin: [2]f32 = {0., 0.}
+	charQuad, char_ok := crgl.font_get_char_quad(font, 'p', textOrigin)
+	charMesh: crgl.Mesh = crgl.createMesh(charQuad[:])
+	fmt.println(charQuad)
 
 	loop: for {
+
 		// Events
 		crgl.handle_events()
 		if crgl.is_key_just_pressed(sdl.K_ESCAPE) do break loop
@@ -50,7 +56,10 @@ main :: proc() {
 		// }
 
 		// Text testing
-		// crgl.renderMesh(screen, shader, fontTex)
+		// crgl.drawPoint({textOrigin[0], textOrigin[1], 0.}, color = {1., 0., 1.})
+		// crgl.renderMesh(charMesh, crgl.sh_get_default_font_shader(), fontTex)
+
+		crgl.font_draw_text(font, "Hola que tal estas", {0., 0.})
 
 
 		// UI testing
@@ -58,14 +67,14 @@ main :: proc() {
 			crgl.gui_begin_window("Nombre")
 
 			if crgl.gui_button() {
-				fmt.println("Button")
+				fmt.println("Hello!")
 			}
 
 			if crgl.gui_button() {
-				fmt.println("This too!")
+				fmt.println("Hello again!")
 			}
 			if crgl.gui_button() {
-				fmt.println("el tercero")
+				fmt.println("Still here?")
 			}
 			crgl.gui_end_window()
 		}

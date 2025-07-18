@@ -49,9 +49,9 @@ Program :: struct {
 }
 
 Context :: struct {
-	window:    Window,
-	defaultVS: u32,
-	defaultFS: u32,
+	window:     Window,
+	defFontSh:  u32,
+	defColorSh: u32,
 }
 
 @(private)
@@ -78,6 +78,18 @@ windowInit :: proc(width, height, GLmajor, GLminor: i32) -> (win: Window, ok: bo
 
 	win = {window, gl_context, width, height}
 	gContext.window = win
+
+	// Init default shaders
+	sh_ok: bool
+	gContext.defColorSh, sh_ok = gl.load_shaders_source(gDefColorVS, gDefColorFS)
+	if !sh_ok {
+		fmt.println("ERROR: loading default color shader")
+	}
+
+	gContext.defFontSh, sh_ok = gl.load_shaders_source(gDefUvsVS, gDefFontFS)
+	if !sh_ok {
+		fmt.println("ERROR: loading default font shader")
+	}
 	return win, true
 }
 
