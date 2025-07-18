@@ -95,15 +95,15 @@ font_get_char_quad :: proc(font: FontData, char: rune, position: [2]f32) -> ([6]
 		{
 			{
 				position[0] + f32(_packed.xoff) * pixelScaleX,
-				position[1] + (f32(quadSize[1]) + f32(_packed.yoff)) * pixelScaleY,
+				position[1] - f32(_packed.yoff) * pixelScaleY,
 				0.,
 			},
 			{f32(_aligned.s0), f32(_aligned.t0)},
 		},
 		{
 			{
-				position[0] + (f32(quadSize[0]) + _packed.xoff) * pixelScaleX,
-				position[1] + (f32(quadSize[1]) + _packed.yoff) * pixelScaleY,
+				position[0] + (f32(quadSize[0]) + f32(_packed.xoff)) * pixelScaleX,
+				position[1] - f32(_packed.yoff) * pixelScaleY,
 				0.,
 			},
 			{f32(_aligned.s1), f32(_aligned.t0)},
@@ -111,15 +111,15 @@ font_get_char_quad :: proc(font: FontData, char: rune, position: [2]f32) -> ([6]
 		{
 			{
 				position[0] + f32(_packed.xoff) * pixelScaleX,
-				position[1] + f32(_packed.yoff) * pixelScaleY,
+				position[1] - (f32(quadSize[1]) + f32(_packed.yoff)) * pixelScaleY,
 				0.,
 			},
 			{f32(_aligned.s0), f32(_aligned.t1)},
 		},
 		{
 			{
-				position[0] + (f32(quadSize[0]) + _packed.xoff) * pixelScaleX,
-				position[1] + (f32(quadSize[1]) + _packed.yoff) * pixelScaleY,
+				position[0] + (f32(quadSize[0]) + f32(_packed.xoff)) * pixelScaleX,
+				position[1] - f32(_packed.yoff) * pixelScaleY,
 				0.,
 			},
 			{f32(_aligned.s1), f32(_aligned.t0)},
@@ -127,15 +127,15 @@ font_get_char_quad :: proc(font: FontData, char: rune, position: [2]f32) -> ([6]
 		{
 			{
 				position[0] + f32(_packed.xoff) * pixelScaleX,
-				position[1] + f32(_packed.yoff) * pixelScaleY,
+				position[1] - (f32(quadSize[1]) + f32(_packed.yoff)) * pixelScaleY,
 				0.,
 			},
 			{f32(_aligned.s0), f32(_aligned.t1)},
 		},
 		{
 			{
-				position[0] + (f32(quadSize[0]) + _packed.xoff) * pixelScaleX,
-				position[1] + f32(_packed.yoff) * pixelScaleY,
+				position[0] + (f32(quadSize[0]) + f32(_packed.xoff)) * pixelScaleX,
+				position[1] - (f32(quadSize[1]) + f32(_packed.yoff)) * pixelScaleY,
 				0.,
 			},
 			{f32(_aligned.s1), f32(_aligned.t1)},

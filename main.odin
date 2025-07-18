@@ -25,8 +25,8 @@ main :: proc() {
 
 	font, ok := crgl.font_atlas_from_file("./crumbsgl/fonts/Comic Sans MS.ttf", i32(' '), 94)
 	//crgl.font_font_to_png(font, "test.png")
-	fmt.println(font.packedChars[i32('p') - font.firstChar])
-	fmt.println(font.alignedQuads[i32('p') - font.firstChar])
+	fmt.println(font.packedChars[i32('H') - font.firstChar])
+	fmt.println(font.alignedQuads[i32('H') - font.firstChar])
 
 	fontTex: crgl.Texture = crgl.createTexture2D(crgl.ATLAS_SIZE, crgl.ATLAS_SIZE)
 	crgl.writeTexture2D(fontTex, font.atlas, 1, crgl.ATLAS_SIZE, crgl.ATLAS_SIZE)
