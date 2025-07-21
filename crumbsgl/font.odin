@@ -3,6 +3,7 @@ package CrumbsGL
 import "core:fmt"
 import "core:os"
 import gl "vendor:OpenGL"
+import sdl "vendor:sdl3"
 import img "vendor:stb/image"
 import ttf "vendor:stb/truetype"
 
@@ -10,18 +11,25 @@ ATLAS_SIZE :: 1024
 FONT_SIZE :: 64.
 
 FontData :: struct {
+	info:         ttf.fontinfo,
+	font_size:    f32,
 	atlas:        []u8,
 	atlasTex:     Texture,
 	packedChars:  []ttf.packedchar,
 	alignedQuads: []ttf.aligned_quad,
 	firstChar:    i32,
 	charRange:    i32,
+	ascent:       i32,
+	descent:      i32,
+	linegap:      i32,
+	scale:        f32,
 }
 
 font_atlas_from_file :: proc(
 	file: string,
 	firstChar: i32,
-	charRange: i32,
+	lastChar: i32,
+	font_size: f32 = FONT_SIZE,
 ) -> (
 	fontData: FontData,
 	font_ok: bool,
@@ -33,6 +41,11 @@ font_atlas_from_file :: proc(
 	}
 	defer delete(fontFile)
 
+	if lastChar < firstChar {
+		fmt.eprintln("ERROR: Invalid character range")
+		os.exit(-1)
+	}
+	charRange: i32 = lastChar - firstChar + 1
 	fontAtlas := make([]u8, ATLAS_SIZE * ATLAS_SIZE)
 	packedChars := make([]ttf.packedchar, charRange)
 	alignedQuads := make([]ttf.aligned_quad, charRange)
@@ -43,7 +56,7 @@ font_atlas_from_file :: proc(
 		&fontCtx,
 		raw_data(fontFile),
 		0,
-		f32(FONT_SIZE),
+		f32(font_size),
 		i32(' '),
 		charRange,
 		raw_data(packedChars),
@@ -64,6 +77,7 @@ font_atlas_from_file :: proc(
 		)
 	}
 
+	ttf.InitFont(&fontData.info, raw_data(fontFile), 0)
 	fontData.atlasTex = createTexture2D(ATLAS_SIZE, ATLAS_SIZE)
 	writeTexture2D(fontData.atlasTex, fontAtlas, 1, ATLAS_SIZE, ATLAS_SIZE)
 	fontData.atlas = fontAtlas
@@ -71,6 +85,9 @@ font_atlas_from_file :: proc(
 	fontData.alignedQuads = alignedQuads
 	fontData.firstChar = firstChar
 	fontData.charRange = charRange
+
+	fontData.scale = ttf.ScaleForPixelHeight(&fontData.info, font_size)
+	ttf.GetFontVMetrics(&fontData.info, &fontData.ascent, &fontData.descent, &fontData.linegap)
 
 	return fontData, true
 }
@@ -84,8 +101,8 @@ font_get_char_quad :: proc(font: FontData, char: rune, position: [2]f32) -> ([6]
 		return {}, false
 	}
 	charIndex: i32 = i32(char) - font.firstChar
-	pixelScaleX: f32 = 1. / f32(font.atlasTex.width)
-	pixelScaleY: f32 = 1. / f32(font.atlasTex.height)
+	pixelScaleX: f32 = 2. / f32(gContext.window.width)
+	pixelScaleY: f32 = 2. / f32(gContext.window.height)
 
 	_packed := font.packedChars[charIndex]
 	_aligned := font.alignedQuads[charIndex]
@@ -145,15 +162,27 @@ font_get_char_quad :: proc(font: FontData, char: rune, position: [2]f32) -> ([6]
 	return quad, true
 }
 
-font_draw_text :: proc(font: FontData, text: string, position: [2]f32) {
-	origin := position
+font_draw_text :: proc(font: FontData, text: string, position: [2]i32) {
+	font := font
+	line_jump: i32 = (font.ascent - font.descent + font.linegap) * i32(font.scale)
+
+	origin := position - {0, line_jump}
 	offset: f32 = 0
 
-	drawPoint({origin[0], origin[1], 0.}, color = {1., 0., 1.})
+	screenPos := position_pixel_to_screen(position) // For debug
+	drawPoint({screenPos[0], screenPos[1], 0.}, color = {1., 0., 1.}) // For debug
 	for char in text {
-		charQuad, char_ok := font_get_char_quad(font, char, origin + {offset, 0})
+		if char == '\n' {
+			origin.x = 0
+			origin.y -= line_jump
+			offset = 0
+			continue
+		}
+
+		screenPos := position_pixel_to_screen(origin + {i32(offset), 0})
+		charQuad, char_ok := font_get_char_quad(font, char, screenPos)
 		if !char_ok {
-			return
+			continue
 		}
 		charMesh := createMesh(charQuad[:])
 		defer deleteMesh(&charMesh)
@@ -162,12 +191,53 @@ font_draw_text :: proc(font: FontData, text: string, position: [2]f32) {
 	}
 }
 
+font_get_text_bbox :: proc(font: FontData, text: string) -> (bboxWidth: f32, bboxHeight: f32) {
+	font := font
+	line_jump: i32 = (font.ascent - font.descent + font.linegap) * i32(font.scale)
+
+	pixelScaleX: f32 = 2. / f32(gContext.window.width)
+	pixelScaleY: f32 = 2. / f32(gContext.window.height)
+
+	textWidth, tempTextWidth: f32
+	textHeight: f32 = f32(line_jump)
+
+	for char in text {
+		if char == '\n' {
+			tempTextWidth = 0
+			textHeight += f32(line_jump)
+			continue
+		}
+		tempTextWidth += font_get_char_advance(font, char) / pixelScaleX
+		if textWidth < tempTextWidth {
+			textWidth = tempTextWidth
+		}
+	}
+	return textWidth, textHeight
+}
+
 font_get_char_advance :: proc(font: FontData, char: rune) -> f32 {
 	if i32(char) < font.firstChar || i32(char) > font.firstChar + font.charRange {
 		return 0
 	}
 	charIndex: i32 = i32(char) - font.firstChar
-	pixelScaleX: f32 = 1. / f32(font.atlasTex.width)
-
-	return f32(font.packedChars[charIndex].xadvance) * pixelScaleX
+	return font.packedChars[charIndex].xadvance
 }
+
+@(private = "file")
+position_pixel_to_screen :: proc(position: [2]i32) -> (glPos: [2]f32) {
+	windX := gContext.window.width
+	windY := gContext.window.height
+	glPos.x = (f32(position.x) / f32(windX)) * 2 - 1
+	glPos.y = (1 - f32(position.y) / f32(windY)) * 2 - 1
+	return glPos
+}
+
+@(private = "file")
+size_pixel_to_screen :: proc(size: [2]i32) -> (glSize: [2]f32) {
+	pixelScaleX: f32 = 2. / f32(gContext.window.width)
+	pixelScaleY: f32 = 2. / f32(gContext.window.height)
+	glSize.x = f32(size.x) * pixelScaleX
+	glSize.y = f32(size.y) * pixelScaleY
+	return glSize
+}
+

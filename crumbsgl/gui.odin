@@ -44,7 +44,7 @@ activeWindow: ^GuiWindowContext
 @(private = "file")
 guiOptions := GuiOptions {
 	elemHeight   = 40,
-	topBarHeight = 40,
+	topBarHeight = 25,
 	vpadding     = 10,
 }
 @(private = "file")
@@ -86,9 +86,9 @@ gui_begin_window :: proc(name: string) {
 
 	// Handle window movement
 	topBar := GuiRect {
-		activeWindow.x,
+		activeWindow.x + guiOptions.topBarHeight,
 		activeWindow.y,
-		activeWindow.width,
+		activeWindow.width - guiOptions.topBarHeight,
 		guiOptions.topBarHeight,
 		{0, 0, 1},
 	}
@@ -101,32 +101,55 @@ gui_begin_window :: proc(name: string) {
 	} else {
 		activeWindow.moving = false
 	}
+
+	// Hndle window hide
+	topBarHide := GuiRect {
+		activeWindow.x,
+		activeWindow.y,
+		guiOptions.topBarHeight,
+		guiOptions.topBarHeight,
+		{1, 0, 1},
+	}
+	if gui_is_pressed(topBarHide) {
+		activeWindow.hidden = !activeWindow.hidden
+	}
 }
 
 gui_end_window :: proc() {
 	// Window drawing
-	topBar := GuiRect {
+	topBarHide := GuiRect {
 		activeWindow.x,
 		activeWindow.y,
-		activeWindow.width,
+		guiOptions.topBarHeight,
+		guiOptions.topBarHeight,
+		{1, 0, 1},
+	}
+	gui_draw(topBarHide)
+
+	topBar := GuiRect {
+		activeWindow.x + guiOptions.topBarHeight,
+		activeWindow.y,
+		activeWindow.width - guiOptions.topBarHeight,
 		guiOptions.topBarHeight,
 		{0, 0, 1},
 	}
 	gui_draw(topBar)
 
-	windowRect := GuiRect {
-		activeWindow.x,
-		activeWindow.y + guiOptions.topBarHeight,
-		activeWindow.width,
-		activeWindow.voffset,
-		{0.4, 0.4, 0.4},
-	}
-	gui_draw(windowRect)
+	if !activeWindow.hidden {
+		windowRect := GuiRect {
+			activeWindow.x,
+			activeWindow.y + guiOptions.topBarHeight,
+			activeWindow.width,
+			activeWindow.voffset,
+			{0.4, 0.4, 0.4},
+		}
+		gui_draw(windowRect)
 
-	// Window items drawing
-	for rect, index in guiRectsArray {
-		if i32(index) == activeWindow.rectCount do break
-		gui_draw(rect)
+		// Window items drawing
+		for rect, index in guiRectsArray {
+			if i32(index) == activeWindow.rectCount do break
+			gui_draw(rect)
+		}
 	}
 
 	activeWindow.rectCount = 0
@@ -134,6 +157,8 @@ gui_end_window :: proc() {
 }
 
 gui_button :: proc() -> bool {
+	if activeWindow.hidden do return false
+
 	x: i32 = activeWindow.x + guiOptions.vpadding
 	y: i32 = activeWindow.y + guiOptions.topBarHeight + activeWindow.voffset
 	width: i32 = activeWindow.width - 2 * guiOptions.vpadding
@@ -231,3 +256,4 @@ void main() {
 }
 
 `
+
