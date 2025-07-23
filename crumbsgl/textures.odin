@@ -21,6 +21,9 @@ Target :: struct {
 	height:  i32,
 }
 
+@(private)
+gDeltaCreatedTextures: i32 = 0
+
 createTexture2D :: proc(
 	width, height: i32,
 	internalformat: u32 = gl.RGBA8,
@@ -29,6 +32,8 @@ createTexture2D :: proc(
 ) -> (
 	texture: Texture,
 ) {
+	gDeltaCreatedTextures += 1
+
 	gl.CreateTextures(gl.TEXTURE_2D, 1, &texture.id)
 
 	gl.TextureParameteri(texture.id, gl.TEXTURE_WRAP_S, wrap)
@@ -91,6 +96,7 @@ writeTexture2D :: proc(texture: Texture, data: []$T, components: u32, width, hei
 }
 
 deleteTexture :: proc(texture: ^Texture) {
+	gDeltaCreatedTextures -= 1
 	gl.DeleteTextures(1, &(texture^.id))
 	texture^ = {} // clear values
 }
@@ -141,3 +147,6 @@ unbindTargets :: proc() {
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 }
 
+TextureDeltaCreation :: proc() -> i32 {
+	return gDeltaCreatedTextures
+}

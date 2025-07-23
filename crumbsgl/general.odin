@@ -52,10 +52,14 @@ Context :: struct {
 	window:     Window,
 	defFontSh:  u32,
 	defColorSh: u32,
+	defRectSh:  u32,
 }
 
 @(private)
 gContext: Context
+@(private)
+gDeltaCreatedBuffers: i32 = 0
+
 
 windowInit :: proc(width, height, GLmajor, GLminor: i32) -> (win: Window, ok: bool) {
 	if !sdl.Init({.VIDEO, .EVENTS}) {
@@ -86,9 +90,14 @@ windowInit :: proc(width, height, GLmajor, GLminor: i32) -> (win: Window, ok: bo
 		fmt.println("ERROR: loading default color shader")
 	}
 
-	gContext.defFontSh, sh_ok = gl.load_shaders_source(gDefUvsVS, gDefFontFS)
+	gContext.defFontSh, sh_ok = gl.load_shaders_source(gDefUvsColorVS, gDefFontFS)
 	if !sh_ok {
 		fmt.println("ERROR: loading default font shader")
+	}
+
+	gContext.defRectSh, sh_ok = gl.load_shaders_source(gDefUvsColorVS, gDefRectFS)
+	if !sh_ok {
+		fmt.println("ERROR: loading default rectangle shader")
 	}
 	return win, true
 }
@@ -101,6 +110,7 @@ windowDelete :: proc(win: ^Window) {
 }
 
 createBuffer :: proc(data: []$T, usage: u32 = gl.STATIC_DRAW) -> (vbo: u32) {
+	gDeltaCreatedBuffers += 1
 	gl.CreateBuffers(1, &vbo)
 	gl.NamedBufferData(vbo, size_of(data[0]) * len(data), raw_data(slice.to_bytes(data)), usage)
 	return vbo
@@ -183,6 +193,7 @@ bindAttributes :: proc(program: Program, vbo: u32, attributes: []struct {
 // }
 
 createMesh :: proc(data: []$T, usage: u32 = gl.DYNAMIC_STORAGE_BIT) -> (mesh: Mesh) {
+	gDeltaCreatedBuffers += 1
 	ssbo: u32
 	gl.CreateBuffers(1, &ssbo)
 	gl.NamedBufferStorage(ssbo, size_of(data[0]) * len(data), raw_data(data), usage)
@@ -192,6 +203,7 @@ createMesh :: proc(data: []$T, usage: u32 = gl.DYNAMIC_STORAGE_BIT) -> (mesh: Me
 }
 
 deleteMesh :: proc(mesh: ^Mesh) {
+	gDeltaCreatedBuffers -= 1
 	gl.DeleteBuffers(1, &(mesh.ssbo))
 	mesh^ = {0, 0}
 }
@@ -262,3 +274,8 @@ compute_run :: proc(compute: u32, group_x: u32 = 1, group_y: u32 = 1, group_z: u
 	gl.DispatchCompute(group_x, group_y, 1)
 	gl.MemoryBarrier(gl.ALL_BARRIER_BITS)
 }
+
+BufferDeltaCreation :: proc() -> i32 {
+	return gDeltaCreatedBuffers
+}
+

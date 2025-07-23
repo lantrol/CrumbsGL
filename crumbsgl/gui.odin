@@ -15,11 +15,16 @@ GuiRect :: struct {
 
 GuiVertex :: struct {
 	position: [3]f32,
-	color:    [3]f32,
 	uv:       [2]f32,
+	color:    [3]f32,
 }
 
 GuiRectData :: [6]GuiRect
+
+GuiText :: struct {
+	text: string,
+	x, y: i32,
+}
 
 GuiWindowContext :: struct {
 	x, y:          i32,
@@ -29,12 +34,16 @@ GuiWindowContext :: struct {
 	hidden:        bool,
 	moving:        bool,
 	rectCount:     i32,
+	textCount:     i32,
 }
 
 GuiOptions :: struct {
+	windowWidth:  i32,
 	elemHeight:   i32,
 	topBarHeight: i32,
 	vpadding:     i32,
+	font:         FontData,
+	textScale:    f32,
 }
 
 @(private = "file")
@@ -42,19 +51,29 @@ allGuiWindows: map[string]GuiWindowContext
 @(private = "file")
 activeWindow: ^GuiWindowContext
 @(private = "file")
-guiOptions := GuiOptions {
+gGuiOptions := GuiOptions {
+	windowWidth  = 300,
 	elemHeight   = 40,
 	topBarHeight = 25,
 	vpadding     = 10,
+	font         = {},
+	textScale    = 0.5,
 }
 @(private = "file")
 guiRectsArray: [200]GuiRect
+@(private = "file")
+guiCharQuadArray: [1000]FontQuad
+@(private = "file")
+guiTextArray: [1000]GuiText
+
+gui_set_font :: proc(font: FontData) {
+	gGuiOptions.font = font
+}
 
 gui_draw :: proc(rect: GuiRect) {
 	meshData: [6]GuiVertex = gui_vertex_from_rect(rect)
 	mesh := createMesh(meshData[:])
-	program, ok := gl.load_shaders_source(defaultVS, defaultFS)
-	renderMesh(mesh, program, mode = gl.TRIANGLES)
+	renderMesh(mesh, sh_get_default_rect_shader(), mode = gl.TRIANGLES)
 	deleteMesh(&mesh)
 }
 
@@ -72,12 +91,13 @@ gui_begin_window :: proc(name: string) {
 		newWindow := GuiWindowContext {
 			10,
 			10,
-			i32(0.4 * f32(gContext.window.width)),
+			gGuiOptions.windowWidth,
 			0,
 			{0.5, 0.5, 0.5},
-			guiOptions.vpadding,
+			gGuiOptions.vpadding,
 			false,
 			false,
+			0,
 			0,
 		}
 		allGuiWindows[name] = newWindow
@@ -86,10 +106,10 @@ gui_begin_window :: proc(name: string) {
 
 	// Handle window movement
 	topBar := GuiRect {
-		activeWindow.x + guiOptions.topBarHeight,
+		activeWindow.x + gGuiOptions.topBarHeight,
 		activeWindow.y,
-		activeWindow.width - guiOptions.topBarHeight,
-		guiOptions.topBarHeight,
+		activeWindow.width - gGuiOptions.topBarHeight,
+		gGuiOptions.topBarHeight,
 		{0, 0, 1},
 	}
 	if gui_is_pressed(topBar) && !activeWindow.moving {
@@ -106,8 +126,8 @@ gui_begin_window :: proc(name: string) {
 	topBarHide := GuiRect {
 		activeWindow.x,
 		activeWindow.y,
-		guiOptions.topBarHeight,
-		guiOptions.topBarHeight,
+		gGuiOptions.topBarHeight,
+		gGuiOptions.topBarHeight,
 		{1, 0, 1},
 	}
 	if gui_is_pressed(topBarHide) {
@@ -120,61 +140,103 @@ gui_end_window :: proc() {
 	topBarHide := GuiRect {
 		activeWindow.x,
 		activeWindow.y,
-		guiOptions.topBarHeight,
-		guiOptions.topBarHeight,
-		{1, 0, 1},
+		gGuiOptions.topBarHeight,
+		gGuiOptions.topBarHeight,
+		{166. / 255., 95. / 255., 194. / 255.},
 	}
 	gui_draw(topBarHide)
 
 	topBar := GuiRect {
-		activeWindow.x + guiOptions.topBarHeight,
+		activeWindow.x + gGuiOptions.topBarHeight,
 		activeWindow.y,
-		activeWindow.width - guiOptions.topBarHeight,
-		guiOptions.topBarHeight,
-		{0, 0, 1},
+		activeWindow.width - gGuiOptions.topBarHeight,
+		gGuiOptions.topBarHeight,
+		{200. / 255., 144. / 255., 222. / 255.},
 	}
 	gui_draw(topBar)
 
 	if !activeWindow.hidden {
 		windowRect := GuiRect {
 			activeWindow.x,
-			activeWindow.y + guiOptions.topBarHeight,
+			activeWindow.y + gGuiOptions.topBarHeight,
 			activeWindow.width,
 			activeWindow.voffset,
-			{0.4, 0.4, 0.4},
+			{79. / 255., 51. / 255., 89. / 255.},
 		}
 		gui_draw(windowRect)
 
-		// Window items drawing
+		// Window buttons drawing
 		for rect, index in guiRectsArray {
 			if i32(index) == activeWindow.rectCount do break
 			gui_draw(rect)
 		}
+
+		// Window Text drawing
+		for text, index in guiTextArray {
+			if i32(index) == activeWindow.textCount do break
+			font_draw_text(
+				gGuiOptions.font,
+				text.text,
+				{text.x, text.y},
+				scale = gGuiOptions.textScale,
+			)
+		}
 	}
 
 	activeWindow.rectCount = 0
-	activeWindow.voffset = guiOptions.vpadding
+	activeWindow.textCount = 0
+	activeWindow.voffset = gGuiOptions.vpadding
 }
 
-gui_button :: proc() -> bool {
+gui_button :: proc(text: string) -> bool {
 	if activeWindow.hidden do return false
-
-	x: i32 = activeWindow.x + guiOptions.vpadding
-	y: i32 = activeWindow.y + guiOptions.topBarHeight + activeWindow.voffset
-	width: i32 = activeWindow.width - 2 * guiOptions.vpadding
-	height: i32 = guiOptions.elemHeight
-
 	if activeWindow.rectCount == len(guiRectsArray) {
 		fmt.println("Error: max rect count reached")
+		return false
+	}
+	if activeWindow.textCount == len(guiTextArray) {
+		fmt.println("Error: max text count reached")
+		return false
 	}
 
-	rect := GuiRect{x, y, width, height, {1., 0., 0.}}
+	x: i32 = activeWindow.x + gGuiOptions.vpadding
+	y: i32 = activeWindow.y + gGuiOptions.topBarHeight + activeWindow.voffset
+	width: i32 = activeWindow.width - 2 * gGuiOptions.vpadding
+	height: i32 = gGuiOptions.elemHeight
+
+	// Button rect
+	rect := GuiRect{x, y, width, height, {138. / 255., 85. / 255., 158. / 255.}}
 	guiRectsArray[activeWindow.rectCount] = rect
 
-	activeWindow.voffset += height + guiOptions.vpadding
+	activeWindow.voffset += height + gGuiOptions.vpadding
 	activeWindow.rectCount += 1
 
+	// Button text
+	bboxWidth, bboxHeight := font_get_text_bbox(gGuiOptions.font, text, gGuiOptions.textScale)
+	textPosX: i32 = x + i32((f32(width) - bboxWidth) / 2)
+	textPosY: i32 = y + i32((f32(height) - bboxHeight) / 2)
+
+	guiTextArray[activeWindow.textCount] = GuiText{text, textPosX, textPosY}
+	activeWindow.textCount += 1
+
 	return gui_is_pressed(rect)
+}
+
+gui_text :: proc(args: ..any) {
+	if activeWindow.hidden do return
+	if activeWindow.textCount == len(guiTextArray) {
+		fmt.println("Error: max text count reached")
+		return
+	}
+	text := fmt.tprint(..args)
+
+	x: i32 = activeWindow.x + gGuiOptions.vpadding
+	y: i32 = activeWindow.y + gGuiOptions.topBarHeight + activeWindow.voffset
+	bboxWidth, bboxHeight := font_get_text_bbox(gGuiOptions.font, text, gGuiOptions.textScale)
+
+	activeWindow.voffset += i32(bboxHeight) + gGuiOptions.vpadding
+	guiTextArray[activeWindow.textCount] = GuiText{text, x, y}
+	activeWindow.textCount += 1
 }
 
 @(private)
@@ -186,12 +248,12 @@ gui_vertex_from_rect :: proc(rect: GuiRect) -> [6]GuiVertex {
 	glWidth: f32 = (f32(rect.width) / f32(windX)) * 2
 	glHeight: f32 = (f32(rect.height) / f32(windY)) * 2
 	data: [6]GuiVertex = {
-		{{glX, glY, 0.}, rect.color, {0, 0}},
-		{{glX + glWidth, glY, 0.}, rect.color, {1, 0}},
-		{{glX, glY - glHeight, 0.}, rect.color, {0, 1}},
-		{{glX + glWidth, glY, 0.}, rect.color, {1, 0}},
-		{{glX, glY - glHeight, 0.}, rect.color, {0, 1}},
-		{{glX + glWidth, glY - glHeight, 0.}, rect.color, {1, 1}},
+		{{glX, glY, 0.}, {0, 0}, rect.color},
+		{{glX + glWidth, glY, 0.}, {1, 0}, rect.color},
+		{{glX, glY - glHeight, 0.}, {0, 1}, rect.color},
+		{{glX + glWidth, glY, 0.}, {1, 0}, rect.color},
+		{{glX, glY - glHeight, 0.}, {0, 1}, rect.color},
+		{{glX + glWidth, glY - glHeight, 0.}, {1, 1}, rect.color},
 	}
 	return data
 }

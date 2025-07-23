@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:os"
+import "core:sys/info"
 import crgl "crumbsgl"
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl3"
@@ -10,7 +11,7 @@ import "vendor:stb/truetype"
 VSYNC :: 1
 GL_VERSION_MAJOR :: 4
 GL_VERSION_MINOR :: 5
-SCREEN_SIZE :: 800
+SCREEN_SIZE :: 1000
 
 main :: proc() {
 	window, wind_ok := crgl.windowInit(
@@ -24,19 +25,13 @@ main :: proc() {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
 	font, ok := crgl.font_atlas_from_file("./crumbsgl/fonts/Comic Sans MS.ttf", i32(' '), i32('~'))
-	crgl.font_font_to_png(font, "smaller.png")
+	crgl.gui_set_font(font)
 	//fmt.println(font.packedChars[i32('H') - font.firstChar])
 	//fmt.println(font.alignedQuads[i32('H') - font.firstChar])
 
-	fontTex: crgl.Texture = crgl.createTexture2D(crgl.ATLAS_SIZE, crgl.ATLAS_SIZE)
-	crgl.writeTexture2D(fontTex, font.atlas, 1, crgl.ATLAS_SIZE, crgl.ATLAS_SIZE)
-
 	screen: crgl.Mesh = crgl.createQuadFS()
 
-	textOrigin: [2]f32 = {0., 0.}
-	charQuad, char_ok := crgl.font_get_char_quad(font, 'p', textOrigin)
-	charMesh: crgl.Mesh = crgl.createMesh(charQuad[:])
-
+	counter: i32 = 0
 	loop: for {
 
 		// Events
@@ -58,28 +53,28 @@ main :: proc() {
 		// crgl.drawPoint({textOrigin[0], textOrigin[1], 0.}, color = {1., 0., 1.})
 		// crgl.renderMesh(charMesh, crgl.sh_get_default_font_shader(), fontTex)
 
-		bboxWidth, bboxHeight := crgl.font_get_text_bbox(font, "Hello :)")
+		bboxWidth, bboxHeight := crgl.font_get_text_bbox(font, "Hello :)\nWhats up?", scale = 0.5)
 		bbox: crgl.GuiRect = {400, 400, i32(bboxWidth), i32(bboxHeight), {0.4, 0.4, 0.4}}
 		crgl.gui_draw(bbox)
-		crgl.font_draw_text(font, "Hello :)", {400., 400.})
+		crgl.font_draw_text(font, "Hello :)\nWhats up?", {400., 400.}, scale = 0.5)
 
 		// UI testing
 		{
 			crgl.gui_begin_window("Nombre")
 
-			if crgl.gui_button() {
+			if crgl.gui_button("Hello Button") {
 				fmt.println("Hello!")
 			}
 
-			if crgl.gui_button() {
-				fmt.println("Hello again!")
-			}
-			if crgl.gui_button() {
-				fmt.println("Still here?")
-			}
+			crgl.gui_text("Contador:", counter)
 			crgl.gui_end_window()
 		}
 
+		counter += 1
+
+		// Debug info
+		//fmt.println("Current buffers: ", crgl.BufferDeltaCreation())
+		//fmt.println("Current textures: ", crgl.TextureDeltaCreation())
 
 		sdl.GL_SwapWindow(window.window)
 	}
