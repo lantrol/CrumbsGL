@@ -13,7 +13,7 @@ FONT_SIZE :: 64.
 FontVertex :: struct {
 	pos:   [3]f32,
 	uvs:   [2]f32,
-	color: [3]f32,
+	color: [4]f32,
 }
 
 FontQuad :: [6]FontVertex
@@ -108,7 +108,7 @@ font_get_char_quad :: proc(
 	char: rune,
 	position: [2]f32,
 	scale: f32 = 1.,
-	color: [3]f32 = {1., 1., 1.},
+	color: [4]f32 = {1., 1., 1., 1.},
 ) -> (
 	FontQuad,
 	bool,
@@ -132,7 +132,7 @@ font_get_char_quad :: proc(
 				0.,
 			},
 			uvs = {f32(_aligned.s0), f32(_aligned.t0)},
-			color = {1., 1., 1.},
+			color = {1., 1., 1., 1.},
 		},
 		{
 			pos = {
@@ -141,7 +141,7 @@ font_get_char_quad :: proc(
 				0.,
 			},
 			uvs = {f32(_aligned.s1), f32(_aligned.t0)},
-			color = {1., 1., 1.},
+			color = {1., 1., 1., 1.},
 		},
 		{
 			pos = {
@@ -150,7 +150,7 @@ font_get_char_quad :: proc(
 				0.,
 			},
 			uvs = {f32(_aligned.s0), f32(_aligned.t1)},
-			color = {1., 1., 1.},
+			color = {1., 1., 1., 1.},
 		},
 		{
 			pos = {
@@ -159,7 +159,7 @@ font_get_char_quad :: proc(
 				0.,
 			},
 			uvs = {f32(_aligned.s1), f32(_aligned.t0)},
-			color = {1., 1., 1.},
+			color = {1., 1., 1., 1.},
 		},
 		{
 			pos = {
@@ -168,7 +168,7 @@ font_get_char_quad :: proc(
 				0.,
 			},
 			uvs = {f32(_aligned.s0), f32(_aligned.t1)},
-			color = {1., 1., 1.},
+			color = {1., 1., 1., 1.},
 		},
 		{
 			pos = {
@@ -177,7 +177,7 @@ font_get_char_quad :: proc(
 				0.,
 			},
 			uvs = {f32(_aligned.s1), f32(_aligned.t1)},
-			color = {1., 1., 1.},
+			color = {1., 1., 1., 1.},
 		},
 	}
 
@@ -189,7 +189,7 @@ font_draw_text :: proc(
 	text: string,
 	position: [2]i32,
 	scale: f32 = 1.,
-	color: [3]f32 = {1., 1., 1.},
+	color: [4]f32 = {1., 1., 1., 1},
 ) {
 	font := font
 	line_jump: i32 = i32(f32(font.ascent - font.descent + font.linegap) * font.scale * scale)
@@ -275,4 +275,3 @@ size_pixel_to_screen :: proc(size: [2]i32) -> (glSize: [2]f32) {
 	glSize.y = f32(size.y) * pixelScaleY
 	return glSize
 }
-

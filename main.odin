@@ -54,13 +54,13 @@ main :: proc() {
 		// crgl.renderMesh(charMesh, crgl.sh_get_default_font_shader(), fontTex)
 
 		bboxWidth, bboxHeight := crgl.font_get_text_bbox(font, "Hello :)\nWhats up?", scale = 0.5)
-		bbox: crgl.GuiRect = {400, 400, i32(bboxWidth), i32(bboxHeight), {0.4, 0.4, 0.4}}
+		bbox: crgl.GuiRect = {400, 400, i32(bboxWidth), i32(bboxHeight), {0.4, 0.4, 0.4, 1}}
 		crgl.gui_draw(bbox)
 		crgl.font_draw_text(font, "Hello :)\nWhats up?", {400., 400.}, scale = 0.5)
 
 		// UI testing
 		{
-			crgl.gui_begin_window("Nombre")
+			crgl.gui_begin_window("Nombre", alpha = 0.4)
 
 			if crgl.gui_button("Hello Button") {
 				fmt.println("Hello!")
@@ -79,4 +79,3 @@ main :: proc() {
 		sdl.GL_SwapWindow(window.window)
 	}
 }
-

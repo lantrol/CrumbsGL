@@ -14,14 +14,14 @@ gDefColorVS: string = `
 
 struct VertexData {
 	float position[3];
-	float color[3];
+	float color[4];
 };
 
 layout(binding = 0, std430) readonly buffer ssbo1 {
 	VertexData data[];
 };
 
-out vec3 iColor;
+out vec4 iColor;
 
 vec3 getPosition(int index) {
     return vec3(
@@ -31,11 +31,12 @@ vec3 getPosition(int index) {
     );
 }
 
-vec3 getColor(int index) {
-    return vec3(
+vec4 getColor(int index) {
+    return vec4(
         data[index].color[0],
         data[index].color[1],
-        data[index].color[2]
+        data[index].color[2],
+        data[index].color[3]
     );
 }
 
@@ -50,11 +51,11 @@ void main() {
 gDefColorFS: string = `
 #version 450 core
 
-in vec3 iColor;
+in vec4 iColor;
 out vec4 frag_color;
 
 void main() {
-	frag_color = vec4(iColor, 1.);
+	frag_color = iColor;
 }
 
 `
@@ -104,7 +105,7 @@ gDefUvsColorVS: string = `
 struct VertexData {
 	float position[3];
 	float uv[2];
-	float color[3];
+	float color[4];
 };
 
 layout(binding = 0, std430) readonly buffer ssbo1 {
@@ -112,7 +113,7 @@ layout(binding = 0, std430) readonly buffer ssbo1 {
 };
 
 out vec2 iUvs;
-out vec3 iColor;
+out vec4 iColor;
 
 vec3 getPosition(int index) {
     return vec3(
@@ -129,11 +130,12 @@ vec2 getUV(int index) {
     );
 }
 
-vec3 getColor(int index) {
-    return vec3(
+vec4 getColor(int index) {
+    return vec4(
         data[index].color[0],
         data[index].color[1],
-        data[index].color[2]
+        data[index].color[2],
+        data[index].color[3]
     );
 }
 
@@ -152,7 +154,7 @@ gDefFontFS: string = `
 uniform sampler2D atlas;
 
 in vec2 iUvs;
-in vec3 iColor;
+in vec4 iColor;
 out vec4 frag_color;
 
 void main() {
@@ -163,7 +165,7 @@ void main() {
 		alpha = 0;
 	}
 	pixel_color.a = alpha;
-	pixel_color.xyz = vec3(pixel_color.x) * iColor;
+	pixel_color.xyz = vec3(pixel_color.x) * iColor.xyz;
 	frag_color = pixel_color;
 }
 
@@ -175,12 +177,11 @@ gDefRectFS: string = `
 #version 450 core
 
 in vec2 iUvs;
-in vec3 iColor;
+in vec4 iColor;
 out vec4 frag_color;
 
 void main() {
-	frag_color = vec4(iColor, 1.);
+	frag_color = iColor;
 }
 
 `
-

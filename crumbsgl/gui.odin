@@ -10,13 +10,13 @@ import sdl "vendor:sdl3"
 GuiRect :: struct {
 	x, y:          i32,
 	width, height: i32,
-	color:         [3]f32,
+	color:         [4]f32,
 }
 
 GuiVertex :: struct {
 	position: [3]f32,
 	uv:       [2]f32,
-	color:    [3]f32,
+	color:    [4]f32,
 }
 
 GuiRectData :: [6]GuiRect
@@ -29,7 +29,8 @@ GuiText :: struct {
 GuiWindowContext :: struct {
 	x, y:          i32,
 	width, height: i32,
-	color:         [3]f32,
+	color:         [4]f32,
+	alpha:         f32,
 	voffset:       i32,
 	hidden:        bool,
 	moving:        bool,
@@ -86,19 +87,20 @@ gui_is_pressed :: proc(rect: GuiRect) -> bool {
 	return false
 }
 
-gui_begin_window :: proc(name: string) {
+gui_begin_window :: proc(name: string, alpha: f32 = 1.) {
 	if name not_in allGuiWindows {
 		newWindow := GuiWindowContext {
-			10,
-			10,
-			gGuiOptions.windowWidth,
-			0,
-			{0.5, 0.5, 0.5},
-			gGuiOptions.vpadding,
-			false,
-			false,
-			0,
-			0,
+			x         = 10,
+			y         = 10,
+			width     = gGuiOptions.windowWidth,
+			height    = 0,
+			color     = {0.5, 0.5, 0.5, alpha},
+			alpha     = alpha,
+			voffset   = gGuiOptions.vpadding,
+			hidden    = false,
+			moving    = false,
+			rectCount = 0,
+			textCount = 0,
 		}
 		allGuiWindows[name] = newWindow
 	}
@@ -110,7 +112,7 @@ gui_begin_window :: proc(name: string) {
 		activeWindow.y,
 		activeWindow.width - gGuiOptions.topBarHeight,
 		gGuiOptions.topBarHeight,
-		{0, 0, 1},
+		{0, 0, 1, 1},
 	}
 	if gui_is_pressed(topBar) && !activeWindow.moving {
 		activeWindow.moving = true
@@ -128,7 +130,7 @@ gui_begin_window :: proc(name: string) {
 		activeWindow.y,
 		gGuiOptions.topBarHeight,
 		gGuiOptions.topBarHeight,
-		{1, 0, 1},
+		{1, 0, 1, 1},
 	}
 	if gui_is_pressed(topBarHide) {
 		activeWindow.hidden = !activeWindow.hidden
@@ -142,7 +144,7 @@ gui_end_window :: proc() {
 		activeWindow.y,
 		gGuiOptions.topBarHeight,
 		gGuiOptions.topBarHeight,
-		{166. / 255., 95. / 255., 194. / 255.},
+		{166. / 255., 95. / 255., 194. / 255., activeWindow.alpha},
 	}
 	gui_draw(topBarHide)
 
@@ -151,7 +153,7 @@ gui_end_window :: proc() {
 		activeWindow.y,
 		activeWindow.width - gGuiOptions.topBarHeight,
 		gGuiOptions.topBarHeight,
-		{200. / 255., 144. / 255., 222. / 255.},
+		{200. / 255., 144. / 255., 222. / 255., activeWindow.alpha},
 	}
 	gui_draw(topBar)
 
@@ -161,7 +163,7 @@ gui_end_window :: proc() {
 			activeWindow.y + gGuiOptions.topBarHeight,
 			activeWindow.width,
 			activeWindow.voffset,
-			{79. / 255., 51. / 255., 89. / 255.},
+			{79. / 255., 51. / 255., 89. / 255., activeWindow.alpha},
 		}
 		gui_draw(windowRect)
 
@@ -205,7 +207,13 @@ gui_button :: proc(text: string) -> bool {
 	height: i32 = gGuiOptions.elemHeight
 
 	// Button rect
-	rect := GuiRect{x, y, width, height, {138. / 255., 85. / 255., 158. / 255.}}
+	rect := GuiRect {
+		x,
+		y,
+		width,
+		height,
+		{138. / 255., 85. / 255., 158. / 255., activeWindow.alpha},
+	}
 	guiRectsArray[activeWindow.rectCount] = rect
 
 	activeWindow.voffset += height + gGuiOptions.vpadding
@@ -318,4 +326,3 @@ void main() {
 }
 
 `
-
