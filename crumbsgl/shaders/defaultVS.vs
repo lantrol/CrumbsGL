@@ -1,13 +1,13 @@
 #version 450 core
 
 struct VertexData {
-	float position[3];
-	float color[3];
-	float uv[2];
+    float position[3];
+    float color[3];
+    float uv[2];
 };
 
 layout(binding = 0, std430) readonly buffer ssbo1 {
-	VertexData data[];
+    VertexData data[];
 };
 
 out vec2 iUvs;

@@ -1,11 +1,72 @@
 package CrumbsGL
 
+import "core:fmt"
+import "core:strings"
+import gl "vendor:OpenGL"
+
+Shader :: struct {
+	id:       u32,
+	type:     Shader_Type,
+	uniforms: map[string]i32,
+}
+
+Shader_Type :: enum {
+	render,
+	compute,
+}
+
 sh_get_default_font_shader :: proc() -> u32 {
 	return gContext.defFontSh
 }
 
 sh_get_default_rect_shader :: proc() -> u32 {
 	return gContext.defRectSh
+}
+
+sh_load_files :: proc(vertexSh, fragmentSh: string) -> Shader {
+	program, ok := gl.load_shaders_file(vertexSh, fragmentSh)
+	if !ok {
+		fmt.eprintln("ERROR: couldnt load shader program")
+	}
+
+	sh: Shader = {
+		id       = program,
+		type     = .render,
+		uniforms = make(map[string]i32),
+	}
+
+	// Uniform reading
+	paramCount: i32
+	gl.GetProgramiv(program, gl.ACTIVE_UNIFORMS, &paramCount)
+
+	for i in 0 ..< paramCount {
+		name: [128]u8
+		length, size: i32
+		type: u32
+		location: i32
+
+		gl.GetActiveUniform(
+			program,
+			u32(i),
+			size_of(name),
+			&length,
+			&size,
+			&type,
+			raw_data(name[:]),
+		)
+		location = gl.GetUniformLocation(program, cstring(raw_data(name[:])))
+		sh.uniforms[strings.clone_from(name[:length])] = location
+
+		// TODO: check type
+	}
+
+	return sh
+}
+
+sh_delete_program :: proc(sh: ^Shader) {
+	gl.DeleteProgram(sh.id)
+	delete(sh.uniforms)
+	sh^ = {}
 }
 
 @(private)

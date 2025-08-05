@@ -29,6 +29,17 @@ main :: proc() {
 	//fmt.println(font.packedChars[i32('H') - font.firstChar])
 	//fmt.println(font.alignedQuads[i32('H') - font.firstChar])
 
+	shader := crgl.sh_load_files(
+		"./crumbsgl/shaders/defColorVS.glsl",
+		"./crumbsgl/shaders/defColorFS.glsl",
+	)
+
+	for key, value in shader.uniforms {
+		fmt.println("Uniform", key, ":", value)
+	}
+
+	crgl.setUniform(shader, "alpha", 2.)
+
 	screen: crgl.Mesh = crgl.createQuadFS()
 
 	counter: i32 = 0

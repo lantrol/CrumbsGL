@@ -14,6 +14,12 @@ setUniform :: proc {
 	setUniformi32v,
 	setUniformui32,
 	setUniformui32v,
+	setUniformf32Sh,
+	setUniformf32vSh,
+	setUniformi32Sh,
+	setUniformi32vSh,
+	setUniformui32Sh,
+	setUniformui32vSh,
 }
 
 setUniformf32 :: proc(shader: u32, name: string, data: f32) {
@@ -121,3 +127,97 @@ setUniformui32v :: proc(shader: u32, name: string, data: []u32) {
 	}
 }
 
+// Shader type
+
+setUniformf32Sh :: proc(shader: Shader, name: string, data: f32) {
+	location, ok := shader.uniforms[name]
+
+	if !ok {
+		fmt.eprintln("ERROR: uniform", name, "does not exist")
+		os.exit(1)
+	}
+
+	gl.ProgramUniform1f(shader.id, location, data)
+}
+
+setUniformf32vSh :: proc(shader: Shader, name: string, data: []f32) {
+	location, ok := shader.uniforms[name]
+
+	if !ok {
+		fmt.eprintln("ERROR: uniform", name, "does not exist")
+		os.exit(1)
+	}
+
+	switch len(data) {
+	case 1:
+		gl.ProgramUniform1fv(shader.id, location, 1, raw_data(data))
+	case 2:
+		gl.ProgramUniform2fv(shader.id, location, 1, raw_data(data))
+	case 3:
+		gl.ProgramUniform3fv(shader.id, location, 1, raw_data(data))
+	case 4:
+		gl.ProgramUniform4fv(shader.id, location, 1, raw_data(data))
+	}
+}
+
+setUniformi32Sh :: proc(shader: Shader, name: string, data: i32) {
+	location, ok := shader.uniforms[name]
+
+	if !ok {
+		fmt.eprintln("ERROR: uniform", name, "does not exist")
+		os.exit(1)
+	}
+
+	gl.ProgramUniform1i(shader.id, location, data)
+}
+
+setUniformi32vSh :: proc(shader: Shader, name: string, data: []i32) {
+	location, ok := shader.uniforms[name]
+
+	if !ok {
+		fmt.eprintln("ERROR: uniform", name, "does not exist")
+		os.exit(1)
+	}
+
+	switch len(data) {
+	case 1:
+		gl.ProgramUniform1iv(shader.id, location, 1, raw_data(data))
+	case 2:
+		gl.ProgramUniform2iv(shader.id, location, 1, raw_data(data))
+	case 3:
+		gl.ProgramUniform3iv(shader.id, location, 1, raw_data(data))
+	case 4:
+		gl.ProgramUniform4iv(shader.id, location, 1, raw_data(data))
+	}
+}
+
+setUniformui32Sh :: proc(shader: Shader, name: string, data: u32) {
+	location, ok := shader.uniforms[name]
+
+	if !ok {
+		fmt.eprintln("ERROR: uniform", name, "does not exist")
+		os.exit(1)
+	}
+
+	gl.ProgramUniform1ui(shader.id, location, data)
+}
+
+setUniformui32vSh :: proc(shader: Shader, name: string, data: []u32) {
+	location, ok := shader.uniforms[name]
+
+	if !ok {
+		fmt.eprintln("ERROR: uniform", name, "does not exist")
+		os.exit(1)
+	}
+
+	switch len(data) {
+	case 1:
+		gl.ProgramUniform1uiv(shader.id, location, 1, raw_data(data))
+	case 2:
+		gl.ProgramUniform2uiv(shader.id, location, 1, raw_data(data))
+	case 3:
+		gl.ProgramUniform3uiv(shader.id, location, 1, raw_data(data))
+	case 4:
+		gl.ProgramUniform4uiv(shader.id, location, 1, raw_data(data))
+	}
+}
