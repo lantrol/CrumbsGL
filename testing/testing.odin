@@ -11,6 +11,17 @@ input :: proc() -> string {
 	return strings.clone_from(buffer[:total_read - 2])
 }
 
-main :: proc() {
-
+Shader :: struct {
+	type: Sh_Type,
 }
+
+Sh_Type :: enum {
+	render,
+	compute,
+}
+
+main :: proc() {
+	shader: Shader = {.compute}
+	assert(shader.type == .render, "Shader is not render type")
+}
+
