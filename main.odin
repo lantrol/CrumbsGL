@@ -26,14 +26,17 @@ main :: proc() {
 
 	screen := crgl.mesh_create_quadfs()
 	texture := crgl.texture_create_2D({2, 2}, .RGB8)
-	crgl.texture_write_2D(
-		texture,
-		[]u8{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-		3,
-	)
+	crgl.texture_write_2D(texture, []u8{80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80}, 3)
 
-	data: []crgl.Vertex = make([]crgl.Vertex, 6)
-	gl.GetNamedBufferSubData(screen.ssbo, 0, 20 * 6, raw_data(data))
+	// data: []crgl.Vertex = make([]crgl.Vertex, 6)
+	// gl.GetNamedBufferSubData(screen.ssbo, 0, 20 * 6, raw_data(data))
+
+	data := crgl.buffer_read(screen.ssbo, crgl.Vertex_Uv, 6)
+	fmt.println(data)
+
+	font, ok := crgl.font_atlas_from_file("crumbsgl/fonts/Comic Sans MS.ttf")
+	assert(ok, "Error cargando fuente")
+
 
 	loop: for {
 
@@ -49,7 +52,8 @@ main :: proc() {
 		crgl.texture_targets_unbind()
 		crgl.mesh_render(screen, crgl.sh_get_default_uvs_shader(), texture)
 
+		crgl.font_draw_text(font, "Hola", {200, 200})
+
 		sdl.GL_SwapWindow(window.window)
 	}
 }
-

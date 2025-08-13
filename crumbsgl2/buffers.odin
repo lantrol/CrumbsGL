@@ -7,9 +7,15 @@ import "core:strings"
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl3"
 
-Vertex :: struct {
+Vertex_Uv :: struct {
 	pos: [3]f32,
-	tex: [2]f32,
+	uv:  [2]f32,
+}
+
+Vertex_Uv_Color :: struct {
+	pos:   [3]f32,
+	uv:    [2]f32,
+	color: [4]f32,
 }
 
 Mesh :: struct {
@@ -30,6 +36,12 @@ buffer_create :: proc(data: []$T, usage: u32 = gl.DYNAMIC_STORAGE_BIT) -> (ssbo:
 buffer_delete :: proc(ssbo: ^u32) {
 	gl.DeleteBuffers(1, ssbo)
 	ssbo^ = 0
+}
+
+buffer_read :: proc(ssbo: u32, $type: typeid, len: int) -> []type {
+	data: []type = make([]type, len)
+	gl.GetNamedBufferSubData(ssbo, 0, size_of(type) * len, raw_data(data))
+	return data
 }
 
 mesh_create :: proc(data: []$T) -> (mesh: Mesh) {
@@ -54,7 +66,7 @@ mesh_render :: proc(mesh: Mesh, shader: Shader, texture: Texture = {}, mode: u32
 }
 
 mesh_create_quadfs :: proc() -> (mesh: Mesh) {
-	screen_vert := []Vertex {
+	screen_vert := []Vertex_Uv {
 		{{-1, 1, 0}, {0, 1}},
 		{{-1, -1, 0}, {0, 0}},
 		{{1, 1, 0}, {1, 1}},
@@ -69,4 +81,3 @@ mesh_create_quadfs :: proc() -> (mesh: Mesh) {
 buffer_created_buffers :: proc() -> i32 {
 	return gDeltaCreatedBuffers
 }
-
