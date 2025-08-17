@@ -3,6 +3,8 @@ package main
 import "core:fmt"
 import "core:os"
 import "core:strings"
+import "testmod"
+import "testmod/files"
 
 input :: proc() -> string {
 	buffer: [1024]u8
@@ -13,6 +15,7 @@ input :: proc() -> string {
 
 Shader :: struct {
 	type: Sh_Type,
+	id:   i32,
 }
 
 Sh_Type :: enum {
@@ -21,7 +24,13 @@ Sh_Type :: enum {
 }
 
 main :: proc() {
-	shader: Shader = {.compute}
+	shader: Shader = {
+		type = .render,
+	}
 	assert(shader.type == .render, "Shader is not render type")
+	//fmt.println(string(testmod.theFile))
+	fmt.println(string(testmod.theOther))
+	testmod.le_print()
+	files.le_second_print()
 }
 

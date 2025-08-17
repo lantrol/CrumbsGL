@@ -81,3 +81,4 @@ mesh_create_quadfs :: proc() -> (mesh: Mesh) {
 buffer_created_buffers :: proc() -> i32 {
 	return gDeltaCreatedBuffers
 }
+

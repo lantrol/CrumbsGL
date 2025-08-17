@@ -49,7 +49,6 @@ main :: proc() {
 		gl.ClearColor(0., 0., 0., 1.)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		crgl.texture_targets_unbind()
 		crgl.mesh_render(screen, crgl.sh_get_default_uvs_shader(), texture)
 
 		crgl.font_draw_text(font, "Hola", {200, 200})
@@ -57,3 +56,4 @@ main :: proc() {
 		sdl.GL_SwapWindow(window.window)
 	}
 }
+

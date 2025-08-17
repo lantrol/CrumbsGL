@@ -260,7 +260,7 @@ position_pixel_to_screen :: proc(position: [2]i32) -> (gl_pos: [2]f32) {
 	return gl_pos
 }
 
-@(private = "file")
+@(private)
 size_pixel_to_screen :: proc(size: [2]i32) -> (gl_size: [2]f32) {
 	pixel_scale_X: f32 = 2. / f32(gContext.window.width)
 	pixel_scale_Y: f32 = 2. / f32(gContext.window.height)
@@ -268,3 +268,4 @@ size_pixel_to_screen :: proc(size: [2]i32) -> (gl_size: [2]f32) {
 	gl_size.y = f32(size.y) * pixel_scale_Y
 	return gl_size
 }
+
