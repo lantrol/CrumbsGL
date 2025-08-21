@@ -1,0 +1,34 @@
+#version 450 core
+
+struct VertexData {
+    float position[3];
+    float color[4];
+};
+
+layout(binding = 0, std430) readonly buffer ssbo1 {
+    VertexData data[];
+};
+
+out vec4 iColor;
+
+vec3 getPosition(int index) {
+    return vec3(
+        data[index].position[0],
+        data[index].position[1],
+        data[index].position[2]
+    );
+}
+
+vec4 getColor(int index) {
+    return vec4(
+        data[index].color[0],
+        data[index].color[1],
+        data[index].color[2],
+        data[index].color[3]
+    );
+}
+
+void main() {
+    iColor = getColor(gl_VertexID);
+    gl_Position = vec4(getPosition(gl_VertexID), 1.0);
+}

@@ -1,5 +1,6 @@
 package main
 
+import "core:crypto/chacha20"
 import "core:fmt"
 import "core:os"
 import "core:strings"
@@ -33,4 +34,3 @@ main :: proc() {
 	testmod.le_print()
 	files.le_second_print()
 }
-

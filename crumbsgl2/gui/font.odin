@@ -1,5 +1,6 @@
-package CrumbsGL2
+package Gui
 
+import crgl "../"
 import "core:fmt"
 import "core:os"
 import gl "vendor:OpenGL"
@@ -13,7 +14,7 @@ FONT_SIZE :: 64.
 Font_Data :: struct {
 	info:          ttf.fontinfo,
 	font_size:     f32,
-	atlas_tex:     Texture,
+	atlas_tex:     crgl.Texture,
 	packed_chars:  []ttf.packedchar,
 	aligned_quads: []ttf.aligned_quad,
 	first_char:    i32,
@@ -24,7 +25,7 @@ Font_Data :: struct {
 	scale:         f32,
 }
 
-Font_Quad :: [6]Vertex_Uv_Color
+Font_Quad :: [6]crgl.Vertex_Uv_Color
 
 font_atlas_from_file :: proc(
 	file: string,
@@ -80,8 +81,8 @@ font_atlas_from_file :: proc(
 	}
 
 	ttf.InitFont(&font_data.info, raw_data(font_file), 0)
-	font_data.atlas_tex = texture_create_2D({ATLAS_SIZE, ATLAS_SIZE})
-	texture_write_2D(font_data.atlas_tex, font_atlas, 1)
+	font_data.atlas_tex = crgl.texture_create_2D({ATLAS_SIZE, ATLAS_SIZE})
+	crgl.texture_write_2D(font_data.atlas_tex, font_atlas, 1)
 	font_data.packed_chars = packed_chars
 	font_data.aligned_quads = aligned_quads
 	font_data.first_char = first_char
@@ -107,8 +108,8 @@ font_get_char_quad :: proc(
 		return {}, false
 	}
 	char_index: i32 = i32(char) - font.first_char
-	pixel_scale_X: f32 = 2. * scale / f32(gContext.window.width)
-	pixel_scale_Y: f32 = 2. * scale / f32(gContext.window.height)
+	pixel_scale_X: f32 = 2. * scale / f32(crgl.gContext.window.width)
+	pixel_scale_Y: f32 = 2. * scale / f32(crgl.gContext.window.height)
 
 	_packed := font.packed_chars[char_index]
 	_aligned := font.aligned_quads[char_index]
@@ -206,9 +207,9 @@ font_draw_text :: proc(
 		if !char_ok {
 			continue
 		}
-		char_mesh := mesh_create(char_quad[:])
-		defer mesh_delete(&char_mesh)
-		mesh_render(char_mesh, sh_get_default_font_shader(), font.atlas_tex)
+		char_mesh := crgl.mesh_create(char_quad[:])
+		defer crgl.mesh_delete(&char_mesh)
+		crgl.mesh_render(char_mesh, crgl.sh_get_default_font_shader(), font.atlas_tex)
 		offset += font_get_char_advance(font, char, scale)
 	}
 }
@@ -253,8 +254,8 @@ font_get_char_advance :: proc(font: Font_Data, char: rune, scale: f32 = 1.) -> f
 
 @(private)
 position_pixel_to_screen :: proc(position: [2]i32) -> (gl_pos: [2]f32) {
-	wind_X := gContext.window.width
-	wind_Y := gContext.window.height
+	wind_X := crgl.gContext.window.width
+	wind_Y := crgl.gContext.window.height
 	gl_pos.x = (f32(position.x) / f32(wind_X)) * 2 - 1
 	gl_pos.y = (1 - f32(position.y) / f32(wind_Y)) * 2 - 1
 	return gl_pos
@@ -262,10 +263,9 @@ position_pixel_to_screen :: proc(position: [2]i32) -> (gl_pos: [2]f32) {
 
 @(private)
 size_pixel_to_screen :: proc(size: [2]i32) -> (gl_size: [2]f32) {
-	pixel_scale_X: f32 = 2. / f32(gContext.window.width)
-	pixel_scale_Y: f32 = 2. / f32(gContext.window.height)
+	pixel_scale_X: f32 = 2. / f32(crgl.gContext.window.width)
+	pixel_scale_Y: f32 = 2. / f32(crgl.gContext.window.height)
 	gl_size.x = f32(size.x) * pixel_scale_X
 	gl_size.y = f32(size.y) * pixel_scale_Y
 	return gl_size
 }
-

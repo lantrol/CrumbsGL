@@ -4,6 +4,7 @@ import "core:fmt"
 import "core:os"
 import "core:sys/info"
 import crgl "crumbsgl2"
+//import gui "crumbsgl2/gui"
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl3"
 import "vendor:stb/truetype"
@@ -34,8 +35,8 @@ main :: proc() {
 	data := crgl.buffer_read(screen.ssbo, crgl.Vertex_Uv, 6)
 	fmt.println(data)
 
-	font, ok := crgl.font_atlas_from_file("crumbsgl/fonts/Comic Sans MS.ttf")
-	assert(ok, "Error cargando fuente")
+	//font, ok := gui.font_atlas_from_file("crumbsgl2/gui/fonts/OpenSans-Regular.ttf")
+	//assert(ok, "Error cargando fuente")
 
 
 	loop: for {
@@ -49,11 +50,10 @@ main :: proc() {
 		gl.ClearColor(0., 0., 0., 1.)
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
-		crgl.mesh_render(screen, crgl.sh_get_default_uvs_shader(), texture)
+		crgl.mesh_render(screen, crgl.gDefShaders.tex_sh, texture)
 
-		crgl.font_draw_text(font, "Hola", {200, 200})
+		//gui.font_draw_text(font, "Hola", {200, 200})
 
 		sdl.GL_SwapWindow(window.window)
 	}
 }
-

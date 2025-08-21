@@ -27,8 +27,16 @@ Context :: struct {
 	defTexSh:   Shader,
 }
 
-@(private)
+Scissor_Stack :: struct {
+	rect:  [20]struct {
+		x, y:          i32,
+		width, height: i32,
+	},
+	count: i32,
+}
+
 gContext: Context = {}
+gScissor_stack: Scissor_Stack = {}
 
 window_init :: proc(
 	name: string,
@@ -53,6 +61,9 @@ window_init :: proc(
 
 	gl.load_up_to(int(GLmajor), int(GLminor), sdl.gl_set_proc_address)
 
+	gl.Enable(gl.SCISSOR_TEST)
+	gl.Scissor(0, 0, width, height)
+
 	// Empty VAO to allow rendering with DSA
 	emptyVao: u32
 	gl.GenVertexArrays(1, &emptyVao)
@@ -62,19 +73,7 @@ window_init :: proc(
 	win = {window, gl_context, width, height}
 	gContext.window = win
 
-	// Init default shaders
-	sh_ok: bool
-	gContext.defColorSh, sh_ok = sh_load_sources(gDefColorVS, gDefColorFS)
-	assert(sh_ok == true, "Error loading defColorSh")
-
-	gContext.defFontSh, sh_ok = sh_load_sources(gDefUvsColorVS, gDefFontFS)
-	assert(sh_ok == true, "ERROR: loading default font shader")
-
-	gContext.defRectSh, sh_ok = sh_load_sources(gDefUvsColorVS, gDefRectFS)
-	assert(sh_ok == true, "ERROR: loading default rectangle shader")
-
-	gContext.defTexSh, sh_ok = sh_load_sources(gDefUvsVS, gDefUvsFS)
-	assert(sh_ok == true, "ERROR: loading default rectangle shader")
+	sh_load_default_shaders()
 
 	return win, true
 }
@@ -95,3 +94,25 @@ window_enable_blending :: proc() {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 }
 
+window_scissors_push :: proc(x, y, width, height: i32) {
+	assert(gScissor_stack.count == len(gScissor_stack.rect), "Scissor stack overflow")
+	gScissor_stack.rect[gScissor_stack.count] = {x, y, width, height}
+	gScissor_stack.count += 1
+	gl.Scissor(y, x, width, height)
+}
+
+window_scissors_pop :: proc() {
+	assert(gScissor_stack.count > 0, "Popping an empty scissor stack")
+	gScissor_stack.count -= 1
+	if gScissor_stack.count == 0 {
+		gl.Scissor(0, 0, gContext.window.width, gContext.window.height)
+	} else {
+		rect := gScissor_stack.rect[gScissor_stack.count - 1]
+		gl.Scissor(rect.x, rect.y, rect.width, rect.height)
+	}
+}
+
+window_scissors_reset :: proc() {
+	gScissor_stack = {}
+	gl.Scissor(0, 0, gContext.window.width, gContext.window.height)
+}
