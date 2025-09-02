@@ -209,10 +209,29 @@ font_draw_text :: proc(
 		}
 		char_mesh := crgl.mesh_create(char_quad[:])
 		defer crgl.mesh_delete(&char_mesh)
-		crgl.mesh_render(char_mesh, crgl.sh_get_default_font_shader(), font.atlas_tex)
+		crgl.mesh_render(char_mesh, crgl.gDefShaders.font_sh, font.atlas_tex)
 		offset += font_get_char_advance(font, char, scale)
 	}
 }
+
+// Acordar de reimplementar esto
+//
+// gui_textf :: proc(text: string, args: ..any) {
+// 	if activeWindow.hidden do return
+// 	if activeWindow.textCount == len(guiTextArray) {
+// 		fmt.println("Error: max text count reached")
+// 		return
+// 	}
+// 	text := fmt.tprintf(text, ..args)
+
+// 	x: i32 = activeWindow.x + gGuiOptions.vpadding
+// 	y: i32 = activeWindow.y + gGuiOptions.topBarHeight + activeWindow.voffset
+// 	bboxWidth, bboxHeight := font_get_text_bbox(gGuiOptions.font, text, gGuiOptions.textScale)
+
+// 	activeWindow.voffset += i32(bboxHeight) + gGuiOptions.vpadding
+// 	guiTextArray[activeWindow.textCount] = GuiText{text, x, y}
+// 	activeWindow.textCount += 1
+// }
 
 font_get_text_bbox :: proc(
 	font: Font_Data,
@@ -269,3 +288,4 @@ size_pixel_to_screen :: proc(size: [2]i32) -> (gl_size: [2]f32) {
 	gl_size.y = f32(size.y) * pixel_scale_Y
 	return gl_size
 }
+

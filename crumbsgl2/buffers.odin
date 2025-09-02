@@ -65,7 +65,7 @@ mesh_render :: proc(mesh: Mesh, shader: Shader, texture: Texture = {}, mode: u32
 	gl.DrawArrays(mode, 0, mesh.vertAmount)
 }
 
-mesh_create_quadfs :: proc() -> (mesh: Mesh) {
+mesh_create_quadfs_norm :: proc() -> (mesh: Mesh) {
 	screen_vert := []Vertex_Uv {
 		{{-1, 1, 0}, {0, 1}},
 		{{-1, -1, 0}, {0, 0}},
@@ -73,6 +73,19 @@ mesh_create_quadfs :: proc() -> (mesh: Mesh) {
 		{{-1, -1, 0}, {0, 0}},
 		{{1, 1, 0}, {1, 1}},
 		{{1, -1, 0}, {1, 0}},
+	}
+	mesh = mesh_create(screen_vert)
+	return mesh
+}
+
+mesh_create_quadfs :: proc(width, height: f32) -> (mesh: Mesh) {
+	screen_vert := []Vertex_Uv {
+		{{0, height, 0}, {0, 1}},
+		{{0, 0, 0}, {0, 0}},
+		{{width, height, 0}, {1, 1}},
+		{{0, 0, 0}, {0, 0}},
+		{{width, height, 0}, {1, 1}},
+		{{width, 0, 0}, {1, 0}},
 	}
 	mesh = mesh_create(screen_vert)
 	return mesh

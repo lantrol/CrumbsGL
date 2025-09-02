@@ -42,6 +42,7 @@ window_init :: proc(
 	name: string,
 	width, height, GLmajor, GLminor: i32,
 	flags: sdl.InitFlags = {.VIDEO, .EVENTS},
+	gl_flags: sdl.WindowFlags = {},
 ) -> (
 	win: Window,
 	ok: bool,
@@ -55,7 +56,12 @@ window_init :: proc(
 	sdl.GL_SetAttribute(.CONTEXT_MINOR_VERSION, GLminor)
 	sdl.GL_SetAttribute(.CONTEXT_PROFILE_MASK, gl.CONTEXT_CORE_PROFILE_BIT)
 
-	window := sdl.CreateWindow(fmt.ctprint(name), width, height, sdl.WindowFlags{.OPENGL})
+	window := sdl.CreateWindow(
+		fmt.ctprint(name),
+		width,
+		height,
+		sdl.WindowFlags{.OPENGL} + gl_flags,
+	)
 	gl_context := sdl.GL_CreateContext(window)
 	sdl.GL_MakeCurrent(window, gl_context)
 
@@ -116,3 +122,4 @@ window_scissors_reset :: proc() {
 	gScissor_stack = {}
 	gl.Scissor(0, 0, gContext.window.width, gContext.window.height)
 }
+

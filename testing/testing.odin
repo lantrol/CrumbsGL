@@ -23,7 +23,6 @@ Sh_Type :: enum {
 	render,
 	compute,
 }
-
 main :: proc() {
 	shader: Shader = {
 		type = .render,
@@ -34,3 +33,4 @@ main :: proc() {
 	testmod.le_print()
 	files.le_second_print()
 }
+
