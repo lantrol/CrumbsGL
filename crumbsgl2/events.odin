@@ -14,7 +14,6 @@ ButtonState :: enum {
 	JustReleased,
 }
 
-
 // Event handling
 @(private = "file")
 Pressed_Keys: map[sdl.Keycode]ButtonState
@@ -52,7 +51,7 @@ handle_events :: proc() {
 			Event_Quit = true
 		} else if event.type == .WINDOW_RESIZED {
 			gl.Viewport(0, 0, event.window.data1, event.window.data2)
-			gl.Scissor(0, 0, event.window.data1, event.window.data2)
+			if gContext.window.scissor_test do gl.Scissor(0, 0, event.window.data1, event.window.data2)
 			gContext.window.width = event.window.data1
 			gContext.window.height = event.window.data2
 		} else if event.type == .KEY_DOWN {
@@ -118,6 +117,11 @@ handle_events :: proc() {
 	}
 	Mouse_Position[0] = i32(x)
 	Mouse_Position[1] = gContext.window.height - i32(y)
+
+	@(static) last_mouse_pos: [2]i32
+	Mouse_Displacement = Mouse_Position - last_mouse_pos
+	Mouse_Displacement[1] = -Mouse_Displacement[1]
+	last_mouse_pos = Mouse_Position
 }
 
 reset_events :: proc() {
@@ -148,6 +152,10 @@ is_button_pressed :: proc(button: sdl.MouseButtonFlag) -> bool {
 	return Mouse_Buttons[button] == .Pressed
 }
 
+is_button_released :: proc(button: sdl.MouseButtonFlag) -> bool {
+	return Mouse_Buttons[button] == .JustReleased
+}
+
 is_modifier_pressed :: proc(mod: sdl.KeymodFlag) -> bool {
 	return Key_Modifiers[mod] == .Pressed || Key_Modifiers[mod] == .JustPressed
 }
@@ -163,4 +171,3 @@ get_mouse_displacement :: proc() -> (x, y: i32) {
 has_quit :: proc() -> bool {
 	return Event_Quit
 }
-

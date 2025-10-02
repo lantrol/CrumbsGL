@@ -1,6 +1,7 @@
 package CrumbsGL2
 
 import "core:fmt"
+import "core:math/linalg"
 import glm "core:math/linalg/glsl"
 import "core:os"
 import "core:slice"
@@ -232,6 +233,5 @@ setUniformMat4Sh :: proc(shader: Shader, name: string, data: matrix[4, 4]f32) {
 	}
 
 	mat_data := linalg.matrix_flatten(data)
-	gl.UniformMatrix4fv(location, 1, false, raw_data(mat_data[:]))
+	gl.ProgramUniformMatrix4fv(shader.id, location, 1, false, raw_data(mat_data[:]))
 }
-

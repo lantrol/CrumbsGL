@@ -19,8 +19,9 @@ Vertex_Uv_Color :: struct {
 }
 
 Mesh :: struct {
-	ssbo:       u32,
-	vertAmount: i32,
+	ssbo:        u32,
+	buffer_size: int,
+	vertAmount:  i32,
 }
 
 @(private)
@@ -44,16 +45,30 @@ buffer_read :: proc(ssbo: u32, $type: typeid, len: int) -> []type {
 	return data
 }
 
+buffer_write :: proc(ssbo: u32, data: []$T, offset: int = 0) {
+	gl.NamedBufferSubData(ssbo, offset, size_of(data[0]) * len(data), raw_data(data))
+}
+
 mesh_create :: proc(data: []$T) -> (mesh: Mesh) {
 	mesh.ssbo = buffer_create(data)
+	mesh.buffer_size = size_of(data[0]) * len(data)
 	mesh.vertAmount = i32(len(data))
 	return mesh
+}
+
+mesh_write :: proc(mesh: ^Mesh, data: []$T, offset: int = 0) -> (ok: bool) {
+	if offset + (size_of(data[0]) * len(data)) > mesh.buffer_size {
+		return false
+	}
+	buffer_write(mesh.ssbo, data, offset)
+	mesh.vertAmount = i32(len(data))
+	return true
 }
 
 mesh_delete :: proc(mesh: ^Mesh) {
 	gDeltaCreatedBuffers -= 1
 	gl.DeleteBuffers(1, &(mesh.ssbo))
-	mesh^ = {0, 0}
+	mesh^ = {0, 0, 0}
 }
 
 mesh_render :: proc(mesh: Mesh, shader: Shader, texture: Texture = {}, mode: u32 = gl.TRIANGLES) {
@@ -94,4 +109,3 @@ mesh_create_quadfs :: proc(width, height: f32) -> (mesh: Mesh) {
 buffer_created_buffers :: proc() -> i32 {
 	return gDeltaCreatedBuffers
 }
-

@@ -10,8 +10,8 @@ void main() {
     vec4 pixel_color = texture(atlas, iUvs);
     float alpha = 1.;
 
-    if (pixel_color.r < 0.01) {
-        alpha = 0;
+    if (pixel_color.r < 0.5) {
+        alpha = 0.;
     }
     pixel_color.a = alpha;
     pixel_color.xyz = vec3(pixel_color.x) * iColor.xyz;

@@ -14,23 +14,15 @@ input :: proc() -> string {
 	return strings.clone_from(buffer[:total_read - 2])
 }
 
-Shader :: struct {
-	type: Sh_Type,
-	id:   i32,
+foo :: proc() -> (a: [dynamic]i32) {
+	append(&a, 1)
+	return a
 }
 
-Sh_Type :: enum {
-	render,
-	compute,
-}
 main :: proc() {
-	shader: Shader = {
-		type = .render,
-	}
-	assert(shader.type == .render, "Shader is not render type")
-	//fmt.println(string(testmod.theFile))
-	fmt.println(string(testmod.theOther))
-	testmod.le_print()
-	files.le_second_print()
+	a := foo()
+	b := foo()
+	append(&a, 2)
+	fmt.println(a)
+	fmt.println(b)
 }
-

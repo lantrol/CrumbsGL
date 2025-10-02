@@ -16,10 +16,11 @@ Shader_Type :: enum {
 }
 
 Default_Shaders :: struct {
-	color_sh: Shader,
-	font_sh:  Shader,
-	rect_sh:  Shader,
-	tex_sh:   Shader,
+	color_sh:    Shader,
+	uv_color_sh: Shader,
+	font_sh:     Shader,
+	rect_sh:     Shader,
+	tex_sh:      Shader,
 }
 
 @(private)
@@ -32,6 +33,8 @@ gDefUvsVS: string : #load("shaders/uvs_vs.glsl", string)
 gDefUvsFS: string : #load("shaders/uvs_fs.glsl", string)
 @(private)
 gDefUvsColorVS: string : #load("shaders/uvs_color_vs.glsl", string)
+@(private)
+gDefUvsColorProjVS: string : #load("shaders/uvs_color_proj_vs.glsl", string)
 @(private)
 gDefFontFS: string : #load("shaders/font_fs.glsl", string)
 @(private)
@@ -48,7 +51,10 @@ sh_load_default_shaders :: proc() {
 	gDefShaders.font_sh, sh_ok = sh_load_sources(gDefUvsColorVS, gDefFontFS)
 	assert(sh_ok == true, "ERROR: loading default font shader")
 
-	gDefShaders.rect_sh, sh_ok = sh_load_sources(gDefUvsColorVS, gDefRectFS)
+	gDefShaders.rect_sh, sh_ok = sh_load_sources(gDefUvsColorProjVS, gDefRectFS)
+	assert(sh_ok == true, "ERROR: loading default rectangle shader")
+
+	gDefShaders.uv_color_sh, sh_ok = sh_load_sources(gDefUvsColorVS, gDefRectFS)
 	assert(sh_ok == true, "ERROR: loading default rectangle shader")
 
 	gDefShaders.tex_sh, sh_ok = sh_load_sources(gDefUvsVS, gDefUvsFS)

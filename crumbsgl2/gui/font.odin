@@ -81,12 +81,13 @@ font_atlas_from_file :: proc(
 	}
 
 	ttf.InitFont(&font_data.info, raw_data(font_file), 0)
-	font_data.atlas_tex = crgl.texture_create_2D({ATLAS_SIZE, ATLAS_SIZE})
+	font_data.atlas_tex = crgl.texture_create_2D({ATLAS_SIZE, ATLAS_SIZE}, filter = gl.LINEAR)
 	crgl.texture_write_2D(font_data.atlas_tex, font_atlas, 1)
 	font_data.packed_chars = packed_chars
 	font_data.aligned_quads = aligned_quads
 	font_data.first_char = first_char
 	font_data.char_range = char_range
+	font_data.font_size = font_size
 
 	font_data.scale = ttf.ScaleForPixelHeight(&font_data.info, font_size)
 	ttf.GetFontVMetrics(&font_data.info, &font_data.ascent, &font_data.descent, &font_data.linegap)
@@ -183,7 +184,6 @@ font_draw_text :: proc(
 	scale: f32 = 1.,
 	color: [4]f32 = {1., 1., 1., 1},
 ) {
-	font := font
 	line_jump: i32 = i32(f32(font.ascent - font.descent + font.linegap) * font.scale * scale)
 
 	// The origin is displaced by the font ascent
@@ -212,6 +212,48 @@ font_draw_text :: proc(
 		crgl.mesh_render(char_mesh, crgl.gDefShaders.font_sh, font.atlas_tex)
 		offset += font_get_char_advance(font, char, scale)
 	}
+}
+
+font_get_text_quads :: proc(
+	font: Font_Data,
+	text: string,
+	position: [2]i32,
+	scale: f32 = 1.,
+	color: [4]f32 = {1., 1., 1., 1},
+) -> (
+	quads: [dynamic]Font_Quad,
+) {
+	line_jump: i32 = i32(f32(font.ascent - font.descent + font.linegap) * font.scale * scale)
+
+	// The origin is displaced by the font ascent
+	// The text position is defined by the top left position
+	// But the glyph quad is made from the bottom left corner
+	origin := position + {0, i32(f32(font.ascent) * font.scale * scale)}
+	offset: f32 = 0
+
+	// screenPos := position_pixel_to_screen(position) // For debug
+	// drawPoint({screenPos[0], screenPos[1], 0.}, color = {1., 0., 1.}) // For debug
+	for char in text {
+		if char == '\n' {
+			origin.x = position.x
+			origin.y += line_jump
+			offset = 0
+			continue
+		}
+
+		screen_pos := position_pixel_to_screen(origin + {i32(offset), 0})
+		char_quad, char_ok := font_get_char_quad(font, char, screen_pos, scale, color)
+		if !char_ok {
+			continue
+		}
+		// char_mesh := crgl.mesh_create(char_quad[:])
+		// defer crgl.mesh_delete(&char_mesh)
+		// crgl.mesh_render(char_mesh, crgl.gDefShaders.font_sh, font.atlas_tex)
+
+		append(&quads, char_quad)
+		offset += font_get_char_advance(font, char, scale)
+	}
+	return quads
 }
 
 // Acordar de reimplementar esto
@@ -288,4 +330,3 @@ size_pixel_to_screen :: proc(size: [2]i32) -> (gl_size: [2]f32) {
 	gl_size.y = f32(size.y) * pixel_scale_Y
 	return gl_size
 }
-

@@ -11,6 +11,8 @@ Window :: struct {
 	window:        ^sdl.Window,
 	gl_context:    sdl.GLContext,
 	width, height: i32,
+	vsync:         Vsync_Flag,
+	scissor_test:  bool,
 }
 
 Vsync_Flag :: enum i32 {
@@ -20,11 +22,7 @@ Vsync_Flag :: enum i32 {
 }
 
 Context :: struct {
-	window:     Window,
-	defFontSh:  Shader,
-	defColorSh: Shader,
-	defRectSh:  Shader,
-	defTexSh:   Shader,
+	window: Window,
 }
 
 Scissor_Stack :: struct {
@@ -67,16 +65,13 @@ window_init :: proc(
 
 	gl.load_up_to(int(GLmajor), int(GLminor), sdl.gl_set_proc_address)
 
-	gl.Enable(gl.SCISSOR_TEST)
-	gl.Scissor(0, 0, width, height)
-
 	// Empty VAO to allow rendering with DSA
 	emptyVao: u32
 	gl.GenVertexArrays(1, &emptyVao)
 	gl.BindVertexArray(emptyVao)
 
 	free_all(context.temp_allocator)
-	win = {window, gl_context, width, height}
+	win = {window, gl_context, width, height, .ON, false}
 	gContext.window = win
 
 	sh_load_default_shaders()
@@ -98,6 +93,11 @@ window_set_vsync :: proc(state: Vsync_Flag) {
 window_enable_blending :: proc() {
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+}
+
+window_enable_scissor :: proc() {
+	gl.Enable(gl.SCISSOR_TEST)
+	gl.Scissor(0, 0, gContext.window.width, gContext.window.height)
 }
 
 window_scissors_push :: proc(x, y, width, height: i32) {
@@ -122,4 +122,3 @@ window_scissors_reset :: proc() {
 	gScissor_stack = {}
 	gl.Scissor(0, 0, gContext.window.width, gContext.window.height)
 }
-
