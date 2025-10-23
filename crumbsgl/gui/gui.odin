@@ -4,6 +4,7 @@ package Gui
 import crgl "../"
 import "core:fmt"
 import glm "core:math/linalg/glsl"
+import "core:slice"
 import "core:strings"
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl3"
@@ -29,7 +30,13 @@ Gui_Rect :: struct {
 	width, height: i32,
 }
 
-Gui_Box :: Gui_Rect
+Gui_Box :: struct {
+	using rect: Gui_Rect,
+	dir:        enum {
+		column,
+		row,
+	},
+}
 
 Gui_Rect_Vertex :: [6]crgl.Vertex_Uv_Color
 
@@ -77,7 +84,7 @@ gui_init :: proc() {
 	}
 }
 
-window_set_font :: proc(font: Font_Data) {
+set_font :: proc(font: Font_Data) {
 	gFont_data = font
 }
 
@@ -173,7 +180,8 @@ window_end :: proc() {
 	}
 	window_vert: Gui_Rect_Vertex = window_rect_to_vertex(wnd_rect, color = Purple_1)
 
-	mesh := crgl.mesh_create(hide_button[:])
+	mesh := crgl.mesh_create_empty(1000 * size_of(crgl.Vertex_Uv_Color))
+	crgl.mesh_write(&mesh, hide_button[:])
 	proj := glm.mat4Ortho3d(
 		left = 0,
 		right = f32(crgl.gContext.window.width),
@@ -194,22 +202,25 @@ window_end :: proc() {
 		crgl.mesh_write(&mesh, window_vert[:])
 		crgl.mesh_render(mesh, crgl.gDefShaders.rect_sh)
 
-		for i in 0 ..< gVertex_buffer.filled {
-			crgl.mesh_write(&mesh, gVertex_buffer.buffer[i][:])
-			crgl.mesh_render(mesh, crgl.gDefShaders.rect_sh)
-		}
-	}
+		// Rectangles drawing
+		crgl.mesh_write(
+			&mesh,
+			slice.reinterpret(
+				[]crgl.Vertex_Uv_Color,
+				gVertex_buffer.buffer[:gVertex_buffer.filled],
+			),
+		)
+		crgl.mesh_render(mesh, crgl.gDefShaders.rect_sh)
 
-	// Font drawing
-	if !gActive_window.hidden {
-		for i in 0 ..< gGlyph_buffer.filled {
-			crgl.mesh_write(&mesh, gGlyph_buffer.buffer[i][:])
-			crgl.mesh_render(mesh, crgl.gDefShaders.font_sh, gFont_data.atlas_tex)
-		}
+		// Font drawing
+		crgl.mesh_write(
+			&mesh,
+			slice.reinterpret([]crgl.Vertex_Uv_Color, gGlyph_buffer.buffer[:gGlyph_buffer.filled]),
+		)
+		crgl.mesh_render(mesh, crgl.gDefShaders.font_sh, gFont_data.atlas_tex)
 	}
 
 	crgl.mesh_delete(&mesh)
-
 	gActive_window = {}
 	gVertex_buffer.filled = 0
 	gGlyph_buffer.filled = 0
@@ -247,6 +258,36 @@ window_vsplit :: proc(box: union {
 	return split1, split2
 }
 
+window_row :: proc(box: union {
+		^Gui_Window,
+		^Gui_Box,
+	}, cols: i32 = 1, height: i32 = 32) -> (row: Gui_Box, width: i32) {
+
+	full_box: ^Gui_Box
+	switch v in box {
+	case ^Gui_Window:
+		full_box = &v.box
+	case ^Gui_Box:
+		full_box = v
+	}
+
+	row = {
+		x      = full_box.x,
+		y      = full_box.y,
+		width  = full_box.width,
+		height = height,
+		dir    = .row,
+	}
+	full_box^ = {
+		x      = full_box.x,
+		y      = full_box.y + height,
+		width  = full_box.width,
+		height = full_box.height - height,
+	}
+
+	return row, row.width / cols
+}
+
 window_rect_to_vertex :: proc(
 	rect: Gui_Rect,
 	uv: [2]f32 = {},
@@ -266,17 +307,44 @@ window_rect_to_vertex :: proc(
 	return data
 }
 
-button_create :: proc(text: string, color: Color = Purple_3) -> (pressed: bool) {
+button_create :: proc(
+	text: string,
+	box: Maybe(^Gui_Box) = nil,
+	btn_height: i32 = 30,
+	btn_width: i32 = 30,
+	color: Color = Purple_3,
+) -> (
+	pressed: bool,
+) {
 	// Temp fixed size values
-	btn_height: i32 = 30
 
-	btn_rect: Gui_Rect = {
-		x      = gActive_window.x + gDefault_style.inner_padding,
-		y      = gActive_window.y + gDefault_style.inner_padding,
-		width  = gActive_window.width - 2 * gDefault_style.inner_padding,
-		height = btn_height,
+	content_bbox: ^Gui_Box
+	content_bbox = box.? or_else &gActive_window.box
+
+	btn_rect: Gui_Rect
+	if content_bbox.dir == .column {
+		btn_rect = {
+			x      = content_bbox.x + gDefault_style.inner_padding,
+			y      = content_bbox.y + gDefault_style.inner_padding,
+			width  = content_bbox.width - 2 * gDefault_style.inner_padding,
+			height = btn_height,
+		}
+		push_rect_vertex(btn_rect, color = color)
+
+		content_bbox.y += btn_rect.height + gDefault_style.inner_padding
+		content_bbox.height -= btn_rect.height + gDefault_style.inner_padding
+	} else {
+		btn_rect = {
+			x      = content_bbox.x + gDefault_style.inner_padding,
+			y      = content_bbox.y + gDefault_style.inner_padding,
+			width  = btn_width - 2 * gDefault_style.inner_padding,
+			height = btn_height,
+		}
+		push_rect_vertex(btn_rect, color = color)
+
+		content_bbox.x += btn_width
+		content_bbox.width -= btn_width
 	}
-	push_rect_vertex(btn_rect, color = color)
 
 	font_scale := f32(btn_height) / gFont_data.font_size
 	bbox_w, bbox_h := font_get_text_bbox(gFont_data, text, scale = font_scale)
@@ -297,9 +365,6 @@ button_create :: proc(text: string, color: Color = Purple_3) -> (pressed: bool) 
 		}
 	}
 	delete(text_quads)
-
-	gActive_window.y += btn_rect.height + gDefault_style.inner_padding
-	gActive_window.height -= btn_rect.height + gDefault_style.inner_padding
 
 	return mouse_in_rect(btn_rect) && crgl.is_button_just_pressed(.LEFT)
 }

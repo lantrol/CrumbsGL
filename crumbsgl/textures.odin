@@ -9,9 +9,20 @@ import sdl "vendor:sdl3"
 
 Texture :: struct {
 	id:             u32,
-	width:          i32,
-	height:         i32,
-	internalformat: u32,
+	width, height:  i32,
+	internalformat: Texture_Format,
+}
+
+Texture_Format :: enum u32 {
+	NONE,
+	RGBA8 = gl.RGBA8,
+	RGBA32F = gl.RGBA32F,
+	RGB8 = gl.RGB8,
+	RGB32F = gl.RGB32F,
+	RG8 = gl.RG8,
+	RG32F = gl.RG32F,
+	R8 = gl.R8,
+	R32F = gl.R32F,
 }
 
 Target :: struct {
@@ -21,12 +32,14 @@ Target :: struct {
 	height:  i32,
 }
 
+// Debug purpose
 @(private)
 gDeltaCreatedTextures: i32 = 0
 
-createTexture2D :: proc(
-	width, height: i32,
-	internalformat: u32 = gl.RGBA8,
+
+texture_create_2D :: proc(
+	dim: [2]i32,
+	internalformat: Texture_Format = .RGBA8,
 	wrap: i32 = gl.REPEAT,
 	filter: i32 = gl.NEAREST,
 ) -> (
@@ -41,15 +54,15 @@ createTexture2D :: proc(
 	gl.TextureParameteri(texture.id, gl.TEXTURE_MIN_FILTER, filter)
 	gl.TextureParameteri(texture.id, gl.TEXTURE_MAG_FILTER, filter)
 
-	gl.TextureStorage2D(texture.id, 1, internalformat, width, height)
+	gl.TextureStorage2D(texture.id, 1, u32(internalformat), dim.x, dim.y)
 
 	texture.internalformat = internalformat
-	texture.width = width
-	texture.height = height
+	texture.width = dim.x
+	texture.height = dim.y
 	return texture
 }
 
-writeTexture2D :: proc(texture: Texture, data: []$T, components: u32, width, height: i32) {
+texture_write_2D :: proc(texture: Texture, data: []$T, components: u32) {
 	format, type: u32
 
 	switch typeid_of(T) {
@@ -91,62 +104,67 @@ writeTexture2D :: proc(texture: Texture, data: []$T, components: u32, width, hei
 	}
 
 	if data != nil {
-		gl.TextureSubImage2D(texture.id, 0, 0, 0, width, height, format, type, raw_data(data))
+		// Pixel Storage alignment is changed to 1 to not require padding for each row to align to 4 bytes
+		// Later is restored to 4 for safety. It is NOT really necessary, unless interacting with other OpenGL code
+		gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
+		gl.TextureSubImage2D(
+			texture.id,
+			0,
+			0,
+			0,
+			texture.width,
+			texture.height,
+			format,
+			type,
+			raw_data(data),
+		)
+		gl.PixelStorei(gl.UNPACK_ALIGNMENT, 4)
 	}
 }
 
-deleteTexture :: proc(texture: ^Texture) {
+texture_delete :: proc(texture: ^Texture) {
 	gDeltaCreatedTextures -= 1
 	gl.DeleteTextures(1, &(texture^.id))
 	texture^ = {} // clear values
 }
 
-bindImage :: proc(unit: u32, texture: Texture, use: enum {
-		READ,
-		WRITE,
-		READ_WRITE,
-	}) {
-	gl_use: u32
-	switch use {
-	case .READ:
-		gl_use = gl.READ_ONLY
-	case .WRITE:
-		gl_use = gl.WRITE_ONLY
-	case .READ_WRITE:
-		gl_use = gl.READ_WRITE
-	}
-
-	gl.BindImageTexture(unit, texture.id, 0, false, 0, gl_use, texture.internalformat)
-}
-
-bindTexture :: proc(unit: u32, texture: Texture) {
+texture_bind :: proc(unit: u32, texture: Texture) {
 	gl.BindTextureUnit(unit, texture.id)
 }
 
-createTarget :: proc(width, height: i32, format: u32 = gl.RGBA8) -> Target {
+texture_bind_image :: proc(unit: u32, texture: Texture, use: enum {
+		READ       = gl.READ_ONLY,
+		WRITE      = gl.WRITE_ONLY,
+		READ_WRITE = gl.READ_WRITE,
+	}) {
+	gl.BindImageTexture(unit, texture.id, 0, false, 0, u32(use), u32(texture.internalformat))
+}
+
+texture_target_create :: proc(width, height: i32, format: Texture_Format = .RGBA8) -> Target {
 	fbo: u32
 	gl.CreateFramebuffers(1, &fbo)
-	texture := createTexture2D(width, height, format)
+	texture := texture_create_2D({width, height}, format)
 	gl.NamedFramebufferTexture(fbo, gl.COLOR_ATTACHMENT0, texture.id, 0)
 	target: Target = {fbo, texture, width, height}
 	return target
 }
 
-deleteTarget :: proc(target: ^Target) {
-	gl.DeleteTextures(1, &(target.texture.id))
+texture_target_delete :: proc(target: ^Target) {
+	texture_delete(&target.texture)
 	gl.DeleteFramebuffers(1, &(target.fbo))
 	target^ = {} // Zero the values
 }
 
-bindTarget :: proc(target: Target, mode: u32 = gl.FRAMEBUFFER) {
+texture_target_bind :: proc(target: Target, mode: u32 = gl.FRAMEBUFFER) {
 	gl.BindFramebuffer(mode, target.fbo)
 	gl.Viewport(0, 0, target.width, target.height)
 }
 
-unbindTargets :: proc() {
+texture_targets_unbind :: proc() {
 	gl.BindFramebuffer(gl.FRAMEBUFFER, 0)
 }
 
-TextureDeltaCreation :: proc() -> i32 {
+dtexture_created_textures :: proc() -> i32 {
 	return gDeltaCreatedTextures
 }
+

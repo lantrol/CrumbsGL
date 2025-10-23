@@ -15,21 +15,60 @@ Shader_Type :: enum {
 	compute,
 }
 
-sh_get_default_font_shader :: proc() -> u32 {
-	return gContext.defFontSh
+Default_Shaders :: struct {
+	color_sh:    Shader,
+	uv_color_sh: Shader,
+	font_sh:     Shader,
+	rect_sh:     Shader,
+	tex_sh:      Shader,
 }
 
-sh_get_default_rect_shader :: proc() -> u32 {
-	return gContext.defRectSh
+@(private)
+gDefColorVS: string : #load("shaders/color_vs.glsl", string)
+@(private)
+gDefColorFS: string : #load("shaders/color_fs.glsl", string)
+@(private)
+gDefUvsVS: string : #load("shaders/uvs_vs.glsl", string)
+@(private)
+gDefUvsFS: string : #load("shaders/uvs_fs.glsl", string)
+@(private)
+gDefUvsColorVS: string : #load("shaders/uvs_color_vs.glsl", string)
+@(private)
+gDefUvsColorProjVS: string : #load("shaders/uvs_color_proj_vs.glsl", string)
+@(private)
+gDefFontFS: string : #load("shaders/font_fs.glsl", string)
+@(private)
+gDefRectFS: string : #load("shaders/rect_fs.glsl", string)
+
+gDefShaders: Default_Shaders = {}
+
+sh_load_default_shaders :: proc() {
+	// Init default shaders
+	sh_ok: bool
+	gDefShaders.color_sh, sh_ok = sh_load_sources(gDefColorVS, gDefColorFS)
+	assert(sh_ok == true, "Error loading defColorSh")
+
+	gDefShaders.font_sh, sh_ok = sh_load_sources(gDefUvsColorVS, gDefFontFS)
+	assert(sh_ok == true, "ERROR: loading default font shader")
+
+	gDefShaders.rect_sh, sh_ok = sh_load_sources(gDefUvsColorProjVS, gDefRectFS)
+	assert(sh_ok == true, "ERROR: loading default rectangle shader")
+
+	gDefShaders.uv_color_sh, sh_ok = sh_load_sources(gDefUvsColorVS, gDefRectFS)
+	assert(sh_ok == true, "ERROR: loading default rectangle shader")
+
+	gDefShaders.tex_sh, sh_ok = sh_load_sources(gDefUvsVS, gDefUvsFS)
+	assert(sh_ok == true, "ERROR: loading default rectangle shader")
 }
 
-sh_load_files :: proc(vertexSh, fragmentSh: string) -> Shader {
-	program, ok := gl.load_shaders_file(vertexSh, fragmentSh)
-	if !ok {
+sh_load_files :: proc(vertexSh, fragmentSh: string) -> (sh: Shader, ok: bool) {
+	program, ok_sh := gl.load_shaders_file(vertexSh, fragmentSh)
+	if !ok_sh {
 		fmt.eprintln("ERROR: couldnt load shader program")
+		return {}, false
 	}
 
-	sh: Shader = {
+	sh = {
 		id       = program,
 		type     = .render,
 		uniforms = make(map[string]i32),
@@ -60,7 +99,130 @@ sh_load_files :: proc(vertexSh, fragmentSh: string) -> Shader {
 		// TODO: check type
 	}
 
-	return sh
+	return sh, true
+}
+
+sh_load_sources :: proc(vertexSh, fragmentSh: string) -> (sh: Shader, ok: bool) {
+	program, ok_sh := gl.load_shaders_source(vertexSh, fragmentSh)
+	if !ok_sh {
+		fmt.eprintln("ERROR: couldnt load shader program")
+		return {}, false
+	}
+
+	sh = {
+		id       = program,
+		type     = .render,
+		uniforms = make(map[string]i32),
+	}
+
+	// Uniform reading
+	paramCount: i32
+	gl.GetProgramiv(program, gl.ACTIVE_UNIFORMS, &paramCount)
+
+	for i in 0 ..< paramCount {
+		name: [128]u8
+		length, size: i32
+		type: u32
+		location: i32
+
+		gl.GetActiveUniform(
+			program,
+			u32(i),
+			size_of(name),
+			&length,
+			&size,
+			&type,
+			raw_data(name[:]),
+		)
+		location = gl.GetUniformLocation(program, cstring(raw_data(name[:])))
+		sh.uniforms[strings.clone_from(name[:length])] = location
+
+		// TODO: check type
+	}
+
+	return sh, true
+}
+
+sh_load_compute_file :: proc(path: string) -> (sh: Shader, ok: bool) {
+	program, ok_sh := gl.load_compute_file(path)
+	if !ok_sh {
+		fmt.eprintln("ERROR: couldnt load shader program")
+		return {}, false
+	}
+
+	sh = {
+		id       = program,
+		type     = .compute,
+		uniforms = make(map[string]i32),
+	}
+
+	// Uniform reading
+	paramCount: i32
+	gl.GetProgramiv(program, gl.ACTIVE_UNIFORMS, &paramCount)
+
+	for i in 0 ..< paramCount {
+		name: [128]u8
+		length, size: i32
+		type: u32
+		location: i32
+
+		gl.GetActiveUniform(
+			program,
+			u32(i),
+			size_of(name),
+			&length,
+			&size,
+			&type,
+			raw_data(name[:]),
+		)
+		location = gl.GetUniformLocation(program, cstring(raw_data(name[:])))
+		sh.uniforms[strings.clone_from(name[:length])] = location
+
+		// TODO: check type
+	}
+
+	return sh, true
+}
+
+sh_load_compute_source :: proc(shader: string) -> (sh: Shader, ok: bool) {
+	program, ok_sh := gl.load_compute_source(shader)
+	if !ok_sh {
+		fmt.eprintln("ERROR: couldnt load shader program")
+		return {}, false
+	}
+
+	sh = {
+		id       = program,
+		type     = .compute,
+		uniforms = make(map[string]i32),
+	}
+
+	// Uniform reading
+	paramCount: i32
+	gl.GetProgramiv(program, gl.ACTIVE_UNIFORMS, &paramCount)
+
+	for i in 0 ..< paramCount {
+		name: [128]u8
+		length, size: i32
+		type: u32
+		location: i32
+
+		gl.GetActiveUniform(
+			program,
+			u32(i),
+			size_of(name),
+			&length,
+			&size,
+			&type,
+			raw_data(name[:]),
+		)
+		location = gl.GetUniformLocation(program, cstring(raw_data(name[:])))
+		sh.uniforms[strings.clone_from(name[:length])] = location
+
+		// TODO: check type
+	}
+
+	return sh, true
 }
 
 sh_delete_program :: proc(sh: ^Shader) {
@@ -69,180 +231,9 @@ sh_delete_program :: proc(sh: ^Shader) {
 	sh^ = {}
 }
 
-@(private)
-gDefColorVS: string = `
-#version 450 core
-
-struct VertexData {
-	float position[3];
-	float color[4];
-};
-
-layout(binding = 0, std430) readonly buffer ssbo1 {
-	VertexData data[];
-};
-
-out vec4 iColor;
-
-vec3 getPosition(int index) {
-    return vec3(
-        data[index].position[0],
-        data[index].position[1],
-        data[index].position[2]
-    );
+sh_compute_run :: proc(compute: Shader, group_x: u32 = 1, group_y: u32 = 1, group_z: u32 = 1) {
+	assert(compute.type == .compute, "Trying to run none Compute Shader")
+	gl.UseProgram(compute.id)
+	gl.DispatchCompute(group_x, group_y, group_z)
+	gl.MemoryBarrier(gl.ALL_BARRIER_BITS)
 }
-
-vec4 getColor(int index) {
-    return vec4(
-        data[index].color[0],
-        data[index].color[1],
-        data[index].color[2],
-        data[index].color[3]
-    );
-}
-
-void main() {
-    iColor = getColor(gl_VertexID);
-    gl_Position = vec4(getPosition(gl_VertexID), 1.0);
-}
-`
-
-
-@(private)
-gDefColorFS: string = `
-#version 450 core
-
-in vec4 iColor;
-out vec4 frag_color;
-
-void main() {
-	frag_color = iColor;
-}
-
-`
-
-
-@(private)
-gDefUvsVS: string = `
-#version 450 core
-
-struct VertexData {
-	float position[3];
-	float uv[2];
-};
-
-layout(binding = 0, std430) readonly buffer ssbo1 {
-	VertexData data[];
-};
-
-out vec2 iUvs;
-
-vec3 getPosition(int index) {
-    return vec3(
-        data[index].position[0],
-        data[index].position[1],
-        data[index].position[2]
-    );
-}
-
-vec2 getUV(int index) {
-    return vec2(
-        data[index].uv[0],
-        data[index].uv[1]
-    );
-}
-
-void main() {
-    iUvs = getUV(gl_VertexID);
-    gl_Position = vec4(getPosition(gl_VertexID), 1.0);
-}
-`
-
-
-@(private)
-gDefUvsColorVS: string = `
-#version 450 core
-
-struct VertexData {
-	float position[3];
-	float uv[2];
-	float color[4];
-};
-
-layout(binding = 0, std430) readonly buffer ssbo1 {
-	VertexData data[];
-};
-
-out vec2 iUvs;
-out vec4 iColor;
-
-vec3 getPosition(int index) {
-    return vec3(
-        data[index].position[0],
-        data[index].position[1],
-        data[index].position[2]
-    );
-}
-
-vec2 getUV(int index) {
-    return vec2(
-        data[index].uv[0],
-        data[index].uv[1]
-    );
-}
-
-vec4 getColor(int index) {
-    return vec4(
-        data[index].color[0],
-        data[index].color[1],
-        data[index].color[2],
-        data[index].color[3]
-    );
-}
-
-void main() {
-    iUvs = getUV(gl_VertexID);
-    iColor = getColor(gl_VertexID);
-    gl_Position = vec4(getPosition(gl_VertexID), 1.0);
-}
-`
-
-
-@(private)
-gDefFontFS: string = `
-#version 450 core
-
-uniform sampler2D atlas;
-
-in vec2 iUvs;
-in vec4 iColor;
-out vec4 frag_color;
-
-void main() {
-	vec4 pixel_color = texture(atlas, iUvs);
-	float alpha = 1.;
-
-	if (pixel_color.r < 0.01) {
-		alpha = 0;
-	}
-	pixel_color.a = alpha;
-	pixel_color.xyz = vec3(pixel_color.x) * iColor.xyz;
-	frag_color = pixel_color;
-}
-
-`
-
-
-@(private)
-gDefRectFS: string = `
-#version 450 core
-
-in vec2 iUvs;
-in vec4 iColor;
-out vec4 frag_color;
-
-void main() {
-	frag_color = iColor;
-}
-
-`

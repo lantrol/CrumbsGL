@@ -14,15 +14,21 @@ input :: proc() -> string {
 	return strings.clone_from(buffer[:total_read - 2])
 }
 
-foo :: proc() -> (a: [dynamic]i32) {
-	append(&a, 1)
-	return a
+ST_1 :: struct {
+	a:       f32,
+	using b: ST_2,
+}
+
+ST_2 :: struct {
+	x, y: i32,
 }
 
 main :: proc() {
-	a := foo()
-	b := foo()
-	append(&a, 2)
+	a: ST_1 = {2.2, {1, 2}}
+	b: ^ST_2 = &a.b
+
+	b.x = 2
+	b.y = 3
+
 	fmt.println(a)
-	fmt.println(b)
 }

@@ -1,4 +1,4 @@
-package CrumbsGL2
+package CrumbsGL
 
 import "core:fmt"
 import glm "core:math/linalg/glsl"

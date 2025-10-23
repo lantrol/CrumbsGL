@@ -5,8 +5,8 @@ import glm "core:math/linalg/glsl"
 import "core:mem"
 import "core:os"
 import "core:sys/info"
-import crgl "crumbsgl2"
-import gui "crumbsgl2/gui"
+import crgl "crumbsgl"
+import gui "crumbsgl/gui"
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl3"
 import "vendor:stb/truetype"
@@ -53,9 +53,9 @@ main :: proc() {
 
 	data := crgl.buffer_read(screen.ssbo, crgl.Vertex_Uv, 6)
 
-	font, ok := gui.font_atlas_from_file("crumbsgl2/gui/fonts/IBMPlexSans-Regular.ttf")
+	font, ok := gui.font_atlas_from_file("crumbsgl/gui/fonts/IBMPlexSans-Regular.ttf")
 	assert(ok, "Error cargando fuente")
-	gui.window_set_font(font)
+	gui.set_font(font)
 
 	bbox_width, bbox_height := gui.font_get_text_bbox(font, "Hola")
 	rect := gui.Gui_Rect{0, 0, 0, 0}
@@ -92,15 +92,15 @@ main :: proc() {
 		// crgl.mesh_render(meshs, crgl.gDefShaders.rect_sh)
 
 		{
-			gui.window_begin("1", 100, 100, 300, 200)
+			gui.window_begin("1", 100, 100, 400, 200)
 
-			// sp1, sp2 := gui.window_vsplit(gui.gActive_window^, 0.5)
-			// gui.debug_draw_box(sp1)
+			sp1, sp2 := gui.window_vsplit(gui.gActive_window^, 0.5)
+			//gui.debug_draw_box(sp1)
 
-			if gui.button_create("Button") {
+			if gui.button_create("Button", &sp1) {
 				fmt.println("Pressed!")
 			}
-			if gui.button_create("Another Button") {
+			if gui.button_create("Another Button", &sp2) {
 				fmt.println("Second Pressed!")
 			}
 
@@ -108,7 +108,7 @@ main :: proc() {
 		}
 
 		{
-			gui.window_begin("2", 450, 100, 300, 200)
+			gui.window_begin("2", 550, 100, 300, 200)
 
 			if gui.button_create("A") {
 				fmt.println("Pressed!")
@@ -119,6 +119,18 @@ main :: proc() {
 			if gui.button_create("C") {
 				fmt.println("Third Pressed!")
 			}
+
+			row, width := gui.window_row(gui.gActive_window, cols = 3, height = 50)
+			if gui.button_create("C", &row, btn_width = width) {
+				fmt.println("Third Pressed!")
+			}
+			if gui.button_create("C", &row, btn_width = width) {
+				fmt.println("Third Pressed!")
+			}
+			if gui.button_create("C", &row, btn_width = width) {
+				fmt.println("Third Pressed!")
+			}
+			// gui.debug_draw_box(row, {0.7, 0.7, 0.7, 1})
 
 			gui.window_end()
 		}

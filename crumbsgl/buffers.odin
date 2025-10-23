@@ -1,4 +1,4 @@
-package CrumbsGL2
+package CrumbsGL
 
 import "core:fmt"
 import glm "core:math/linalg/glsl"
@@ -34,6 +34,13 @@ buffer_create :: proc(data: []$T, usage: u32 = gl.DYNAMIC_STORAGE_BIT) -> (ssbo:
 	return ssbo
 }
 
+buffer_create_empty :: proc(size: int, usage: u32 = gl.DYNAMIC_STORAGE_BIT) -> (ssbo: u32) {
+	gDeltaCreatedBuffers += 1
+	gl.CreateBuffers(1, &ssbo)
+	gl.NamedBufferStorage(ssbo, size, nil, usage)
+	return ssbo
+}
+
 buffer_delete :: proc(ssbo: ^u32) {
 	gl.DeleteBuffers(1, ssbo)
 	ssbo^ = 0
@@ -53,6 +60,13 @@ mesh_create :: proc(data: []$T) -> (mesh: Mesh) {
 	mesh.ssbo = buffer_create(data)
 	mesh.buffer_size = size_of(data[0]) * len(data)
 	mesh.vertAmount = i32(len(data))
+	return mesh
+}
+
+mesh_create_empty :: proc(size: int) -> (mesh: Mesh) {
+	mesh.ssbo = buffer_create_empty(size)
+	mesh.buffer_size = size
+	mesh.vertAmount = 0
 	return mesh
 }
 

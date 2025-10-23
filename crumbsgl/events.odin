@@ -14,16 +14,22 @@ ButtonState :: enum {
 	JustReleased,
 }
 
-
 // Event handling
 @(private = "file")
 Pressed_Keys: map[sdl.Keycode]ButtonState
+@(private = "file")
+Key_Modifiers: map[sdl.KeymodFlag]ButtonState
 @(private = "file")
 Mouse_Buttons: map[sdl.MouseButtonFlag]ButtonState
 @(private = "file")
 Mouse_Position: [2]i32 = {}
 @(private = "file")
 Mouse_Displacement: [2]i32 = {}
+@(private = "file")
+Mouse_Scroll: struct {
+	scrolled: bool,
+	amount:   i32,
+}
 @(private = "file")
 Event_Quit: bool = false
 
@@ -36,12 +42,18 @@ handle_events :: proc() {
 	}
 	Mouse_Displacement[0] = 0
 	Mouse_Displacement[1] = 0
+	Mouse_Scroll = {false, 0}
 
 	// Event Handling
 	event: sdl.Event
 	for sdl.PollEvent(&event) {
 		if event.type == .QUIT {
 			Event_Quit = true
+		} else if event.type == .WINDOW_RESIZED {
+			gl.Viewport(0, 0, event.window.data1, event.window.data2)
+			if gContext.window.scissor_test do gl.Scissor(0, 0, event.window.data1, event.window.data2)
+			gContext.window.width = event.window.data1
+			gContext.window.height = event.window.data2
 		} else if event.type == .KEY_DOWN {
 			if Pressed_Keys[event.key.key] == .JustPressed {
 				Pressed_Keys[event.key.key] = .Pressed
@@ -53,6 +65,31 @@ handle_events :: proc() {
 		} else if event.type == .MOUSE_MOTION {
 			Mouse_Displacement[0] = i32(event.motion.xrel)
 			Mouse_Displacement[1] = i32(event.motion.yrel)
+		} else if event.type == .MOUSE_WHEEL {
+			Mouse_Scroll = {true, event.wheel.integer_y}
+			fmt.println(event.wheel.x, event.wheel.y)
+		}
+	}
+
+	// Key modifiers
+	modState: sdl.Keymod = sdl.GetModState()
+	for modifier in sdl.KeymodFlag {
+		if modifier in modState {
+			#partial switch Key_Modifiers[modifier] {
+			case .Pressed:
+			case .JustPressed:
+				Key_Modifiers[modifier] = .Pressed
+			case:
+				Key_Modifiers[modifier] = .JustPressed
+			}
+		} else {
+			#partial switch Key_Modifiers[modifier] {
+			case .NotPressed:
+			case .JustReleased:
+				Key_Modifiers[modifier] = .NotPressed
+			case:
+				Key_Modifiers[modifier] = .JustReleased
+			}
 		}
 	}
 
@@ -79,7 +116,12 @@ handle_events :: proc() {
 		}
 	}
 	Mouse_Position[0] = i32(x)
-	Mouse_Position[1] = i32(y)
+	Mouse_Position[1] = gContext.window.height - i32(y)
+
+	@(static) last_mouse_pos: [2]i32
+	Mouse_Displacement = Mouse_Position - last_mouse_pos
+	Mouse_Displacement[1] = -Mouse_Displacement[1]
+	last_mouse_pos = Mouse_Position
 }
 
 reset_events :: proc() {
@@ -88,6 +130,14 @@ reset_events :: proc() {
 	}
 	Mouse_Buttons = {}
 	Event_Quit = false
+}
+
+key_is_state :: proc(key: sdl.Keycode, state: ButtonState) -> bool {
+	return Pressed_Keys[key] == state
+}
+
+key_is_states :: proc(key: sdl.Keycode, states: bit_set[ButtonState]) -> bool {
+	return Pressed_Keys[key] in states
 }
 
 is_key_just_pressed :: proc(key: sdl.Keycode) -> bool {
@@ -100,6 +150,14 @@ is_button_just_pressed :: proc(button: sdl.MouseButtonFlag) -> bool {
 
 is_button_pressed :: proc(button: sdl.MouseButtonFlag) -> bool {
 	return Mouse_Buttons[button] == .Pressed
+}
+
+is_button_released :: proc(button: sdl.MouseButtonFlag) -> bool {
+	return Mouse_Buttons[button] == .JustReleased
+}
+
+is_modifier_pressed :: proc(mod: sdl.KeymodFlag) -> bool {
+	return Key_Modifiers[mod] == .Pressed || Key_Modifiers[mod] == .JustPressed
 }
 
 get_mouse_position :: proc() -> (x, y: i32) {

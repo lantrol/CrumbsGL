@@ -1,13 +1,14 @@
 package CrumbsGL
 
 import "core:fmt"
+import "core:math/linalg"
 import glm "core:math/linalg/glsl"
 import "core:os"
 import "core:slice"
 import "core:strings"
 import gl "vendor:OpenGL"
 
-setUniform :: proc {
+set_uniform :: proc {
 	setUniformf32,
 	setUniformf32v,
 	setUniformi32,
@@ -20,6 +21,7 @@ setUniform :: proc {
 	setUniformi32vSh,
 	setUniformui32Sh,
 	setUniformui32vSh,
+	setUniformMat4Sh,
 }
 
 setUniformf32 :: proc(shader: u32, name: string, data: f32) {
@@ -220,4 +222,16 @@ setUniformui32vSh :: proc(shader: Shader, name: string, data: []u32) {
 	case 4:
 		gl.ProgramUniform4uiv(shader.id, location, 1, raw_data(data))
 	}
+}
+
+setUniformMat4Sh :: proc(shader: Shader, name: string, data: matrix[4, 4]f32) {
+	location, ok := shader.uniforms[name]
+
+	if !ok {
+		fmt.eprintln("ERROR: uniform", name, "does not exist")
+		os.exit(1)
+	}
+
+	mat_data := linalg.matrix_flatten(data)
+	gl.ProgramUniformMatrix4fv(shader.id, location, 1, false, raw_data(mat_data[:]))
 }
