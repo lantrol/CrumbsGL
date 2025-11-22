@@ -122,3 +122,12 @@ window_scissors_reset :: proc() {
 	gScissor_stack = {}
 	gl.Scissor(0, 0, gContext.window.width, gContext.window.height)
 }
+
+window_clear_color :: proc(r, g, b, a: f32) {
+	gl.ClearColor(r, g, b, a)
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+}
+
+window_end_frame :: proc(window: ^Window) {
+	sdl.GL_SwapWindow(window.window)
+}

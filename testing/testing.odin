@@ -14,21 +14,21 @@ input :: proc() -> string {
 	return strings.clone_from(buffer[:total_read - 2])
 }
 
-ST_1 :: struct {
-	a:       f32,
-	using b: ST_2,
+foo :: proc(callback: proc(data: $T), data: T) {
+	callback(data)
 }
 
-ST_2 :: struct {
-	x, y: i32,
+Callback :: struct($DATA: typeid) {
+	func: proc(a: DATA),
+	data: DATA,
 }
 
 main :: proc() {
-	a: ST_1 = {2.2, {1, 2}}
-	b: ^ST_2 = &a.b
-
-	b.x = 2
-	b.y = 3
-
-	fmt.println(a)
+	Data :: struct {
+		a: int,
+		b: f32,
+	}
+	a: Data = {1, 2.2}
+	b := rawptr(a)
+	c := transmute(Data)(b^)
 }

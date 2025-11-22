@@ -36,13 +36,19 @@ Event_Quit: bool = false
 handle_events :: proc() {
 	// Pre event handle and resets
 	for key, value in Pressed_Keys {
-		if value == .JustPressed {
+		if value == .JustReleased {
 			Pressed_Keys[key] = .NotPressed
 		}
 	}
 	Mouse_Displacement[0] = 0
 	Mouse_Displacement[1] = 0
 	Mouse_Scroll = {false, 0}
+
+	for key, value in Pressed_Keys {
+		if value == .JustPressed {
+			Pressed_Keys[key] = .Pressed
+		}
+	}
 
 	// Event Handling
 	event: sdl.Event
@@ -138,6 +144,10 @@ key_is_state :: proc(key: sdl.Keycode, state: ButtonState) -> bool {
 
 key_is_states :: proc(key: sdl.Keycode, states: bit_set[ButtonState]) -> bool {
 	return Pressed_Keys[key] in states
+}
+
+get_key_state :: proc(key: sdl.Keycode) -> (state: ButtonState) {
+	return Pressed_Keys[key]
 }
 
 is_key_just_pressed :: proc(key: sdl.Keycode) -> bool {
