@@ -13,6 +13,7 @@ import sdl "vendor:sdl3"
 
 MAX_VERTEX :: 200
 MAX_GLYPH :: 1000
+MAX_MESH_BUFFER :: 2000
 
 Window :: struct {
 	wind_x, wind_y: i32,
@@ -164,6 +165,7 @@ container_create :: proc(
 	width: i32,
 	height: i32,
 ) -> ^Container {
+
 	container: ^Container = new(Container)
 	container.width = width
 	container.height = height
@@ -231,7 +233,7 @@ window_draw :: proc(window: ^Window) {
 	gVertex_buffer.filled = 0
 	gGlyph_buffer.filled = 0
 
-	mesh := crgl.mesh_create_empty(MAX_VERTEX * size_of(crgl.Vertex_Uv_Color))
+	mesh := crgl.mesh_create_empty(MAX_MESH_BUFFER * size_of(crgl.Vertex_Uv_Color))
 	proj := glm.mat4Ortho3d(
 		left = 0,
 		right = f32(crgl.gContext.window.width),
@@ -287,15 +289,19 @@ window_draw :: proc(window: ^Window) {
 		case ^Button:
 			rect := window_rect_to_vertex(comp.(^Button).rect, color = Purple_3)
 			push_rect_vertex(comp.(^Button).rect, color = Purple_3)
+
+			// First get default font size bbox of text
+			// Then adjust scale to fit text in button width
+			bb_w, bb_h := font_get_text_bbox(gFont_data, v.text, scale = 1)
+			text_scale := min(f32(v.height) / gFont_data.font_size, f32(v.width) / bb_w)
+			bb_w, bb_h = font_get_text_bbox(gFont_data, v.text, scale = text_scale)
+
 			font_vert := font_get_text_quads(
 				gFont_data,
 				v.text,
-				{v.x, v.y},
-				scale = 0.6,
+				{v.x + i32((f32(v.width) - bb_w) / 2), v.y + i32((f32(v.height) - bb_h) / 2)},
+				scale = text_scale,
 			);defer delete(font_vert)
-			// for &quad in font_vert {
-			// 	quad = font_norm_to_pixels(quad)
-			// }
 			push_text_vertex(font_vert[:])
 		case ^Container:
 			for &child in v.comps {
@@ -306,9 +312,6 @@ window_draw :: proc(window: ^Window) {
 
 	crgl.mesh_write(&mesh, gVertex_buffer.buffer[:gVertex_buffer.filled])
 	crgl.mesh_render(mesh, crgl.gDefShaders.rect_sh)
-
-	fmt.println(gGlyph_buffer.buffer[0:4])
-	fmt.println(gGlyph_buffer.filled)
 
 	crgl.mesh_write(&mesh, gGlyph_buffer.buffer[:gGlyph_buffer.filled])
 	crgl.mesh_render(mesh, crgl.gDefShaders.font_sh, gFont_data.atlas_tex)
@@ -433,6 +436,6 @@ push_text_vertex :: proc(text: []Font_Quad) {
 		for i in 0 ..< len(quad) {
 			gGlyph_buffer.buffer[gGlyph_buffer.filled + i32(i)] = quad[i]
 		}
+		gGlyph_buffer.filled += i32(len(quad))
 	}
-	gGlyph_buffer.filled += i32(len(text) * len(text[0]))
 }

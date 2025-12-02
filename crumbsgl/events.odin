@@ -178,6 +178,11 @@ get_mouse_displacement :: proc() -> (x, y: i32) {
 	return Mouse_Displacement[0], Mouse_Displacement[1]
 }
 
+get_mouse_scroll :: proc() -> i32 {
+	if Mouse_Scroll.scrolled do return Mouse_Scroll.amount
+	else do return 0
+}
+
 has_quit :: proc() -> bool {
 	return Event_Quit
 }

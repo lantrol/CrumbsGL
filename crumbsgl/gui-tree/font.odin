@@ -5,7 +5,6 @@ import "core:fmt"
 import "core:os"
 import gl "vendor:OpenGL"
 import sdl "vendor:sdl3"
-import img "vendor:stb/image"
 import ttf "vendor:stb/truetype"
 
 ATLAS_SIZE :: 1024

@@ -28,7 +28,5 @@ main :: proc() {
 		a: int,
 		b: f32,
 	}
-	a: Data = {1, 2.2}
-	b := rawptr(a)
-	c := transmute(Data)(b^)
+	a: typeid = Data
 }

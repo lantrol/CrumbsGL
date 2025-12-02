@@ -27,10 +27,10 @@ main :: proc() {
 	gui_wind.content.type = .Column
 	c1 := gui.container_create(&gui_wind.content, .Row, 300, 100)
 	c2 := gui.container_create(&gui_wind.content, .Row, 300, 100)
-	gui.button_create(c1, "A", -1, -1)
-	gui.button_create(c1, "A", -1, -1)
-	gui.button_create(c2, "A", -1, -1)
-	b4 := gui.button_create(c2, "A", -1, -1)
+	gui.button_create(c1, "Hola que tal", -1, -1)
+	gui.button_create(c1, "12", -1, -1)
+	gui.button_create(c2, "12", -1, -1)
+	b4 := gui.button_create(c2, "12", -1, -1)
 
 	loop: for {
 		crgl.handle_events()
