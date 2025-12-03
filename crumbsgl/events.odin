@@ -73,7 +73,6 @@ handle_events :: proc() {
 			Mouse_Displacement[1] = i32(event.motion.yrel)
 		} else if event.type == .MOUSE_WHEEL {
 			Mouse_Scroll = {true, i32(event.wheel.y)}
-			fmt.println(event.wheel.x, event.wheel.y)
 		}
 	}
 
@@ -186,3 +185,4 @@ get_mouse_scroll :: proc() -> i32 {
 has_quit :: proc() -> bool {
 	return Event_Quit
 }
+

@@ -234,6 +234,8 @@ window_draw :: proc(window: ^Window) {
 	gGlyph_buffer.filled = 0
 
 	mesh := crgl.mesh_create_empty(MAX_MESH_BUFFER * size_of(crgl.Vertex_Uv_Color))
+	defer crgl.mesh_delete(&mesh)
+
 	proj := glm.mat4Ortho3d(
 		left = 0,
 		right = f32(crgl.gContext.window.width),
@@ -318,8 +320,6 @@ window_draw :: proc(window: ^Window) {
 
 	crgl.mesh_write(&mesh, gGlyph_buffer.buffer[:gGlyph_buffer.filled])
 	crgl.mesh_render(mesh, crgl.gDefShaders.font_sh, gFont_data.atlas_tex)
-
-	crgl.mesh_delete(&mesh)
 }
 
 window_handle_events :: proc(window: ^Window) {
