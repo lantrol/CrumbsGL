@@ -269,15 +269,18 @@ window_draw :: proc(window: ^Window) {
 		color = Purple_1,
 	)
 
-	crgl.mesh_write(&mesh, back_rect[:])
-	crgl.mesh_render(mesh, crgl.gDefShaders.rect_sh)
 	crgl.mesh_write(&mesh, tb_rect[:])
 	crgl.mesh_render(mesh, crgl.gDefShaders.rect_sh)
 	crgl.mesh_write(&mesh, hb_rect[:])
 	crgl.mesh_render(mesh, crgl.gDefShaders.rect_sh)
 
+	if window.hidden do return // Stop painting if hidden
+
+	crgl.mesh_write(&mesh, back_rect[:])
+	crgl.mesh_render(mesh, crgl.gDefShaders.rect_sh)
+
 	// Components
-	all_comps: queue.Queue(Component)
+	all_comps: queue.Queue(Component);defer queue.destroy(&all_comps)
 	ok, err := queue.push_back(&all_comps, &window.content)
 
 	comp: Component
@@ -357,7 +360,9 @@ window_handle_events :: proc(window: ^Window) {
 
 	layout_update(window)
 
-	all_comps: queue.Queue(Component)
+	if window.hidden do return
+
+	all_comps: queue.Queue(Component);defer queue.destroy(&all_comps)
 	ok, err := queue.push_back(&all_comps, &window.content)
 
 	comp: Component
@@ -439,3 +444,20 @@ push_text_vertex :: proc(text: []Font_Quad) {
 		gGlyph_buffer.filled += i32(len(quad))
 	}
 }
+
+mouse_in_window :: proc(wind: ^Window) -> bool {
+	x, y := crgl.get_mouse_position()
+	y = crgl.gContext.window.height - y
+
+	height := wind.wind_h + wind.top_bar_height if !wind.hidden else wind.top_bar_height
+
+	if x > wind.wind_x &&
+	   x < wind.wind_x + wind.wind_w &&
+	   y > wind.wind_y &&
+	   y < wind.wind_y + height {
+		return true
+	}
+
+	return false
+}
+

@@ -72,7 +72,7 @@ handle_events :: proc() {
 			Mouse_Displacement[0] = i32(event.motion.xrel)
 			Mouse_Displacement[1] = i32(event.motion.yrel)
 		} else if event.type == .MOUSE_WHEEL {
-			Mouse_Scroll = {true, event.wheel.integer_y}
+			Mouse_Scroll = {true, i32(event.wheel.y)}
 			fmt.println(event.wheel.x, event.wheel.y)
 		}
 	}
