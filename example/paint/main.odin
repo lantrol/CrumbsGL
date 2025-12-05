@@ -45,7 +45,7 @@ main :: proc() {
 	}
 	crgl.window_enable_blending()
 
-	font, f_ok := gui.font_atlas_from_file("./IBMPlexSans-Regular.ttf")
+	font, f_ok := gui.font_atlas_from_file("../../crumbsgl/gui-tree/fonts/IBMPlexSans-Regular.ttf")
 	gui.gui_init(font)
 
 	stroke_width: f32 = 8
